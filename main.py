@@ -1,5 +1,5 @@
-import tkinter as tk
-from tkinter import ttk, filedialog
+from tkinter import ttk, filedialog, Tk, Menu, BooleanVar
+from typing import Optional
 
 # Para reprodução de vídeo, você precisará do OpenCV e Pillow
 # Instale com: pip install opencv-python pillow
@@ -21,21 +21,24 @@ class VideoAnalysisApp:
         self.root.geometry("1200x800")
 
         # --- Configuração do Layout Principal ---
-        # A grade principal terá 2 colunas e 4 linhas
-        # A coluna 0 (gráficos) será mais larga que a coluna 1 (vídeos)
-        self.root.grid_columnconfigure(0, weight=3)
-        self.root.grid_columnconfigure(1, weight=1)
+        # A grade principal terá 2 colunas e 3 linhas
+        # A coluna 0 (gráficos) será mais larga que a coluna 1 (vídeos e controles)
+        self.root.grid_columnconfigure(0, weight=3)  # Coluna do gráfico
+        self.root.grid_columnconfigure(1, weight=1)  # Coluna dos vídeos/controles
 
-        # As linhas de vídeo terão altura fixa, a linha do gráfico se expandirá
-        self.root.grid_rowconfigure(0, weight=1)
-        self.root.grid_rowconfigure(1, weight=1)
-        self.root.grid_rowconfigure(2, weight=0)  # Para o slider
-        self.root.grid_rowconfigure(3, weight=0)  # Para os checkboxes
+        # As linhas da raiz:
+        # Linha 0: Menu (não é um widget de grid, mas a barra de menu está lá)
+        # Linha 1: Área principal (gráfico à esquerda, vídeos/slider à direita)
+        # Linha 2: Checkboxes (inferior)
+        self.root.grid_rowconfigure(0, weight=1)  # Linha principal de conteúdo (gráfico e vídeos)
+        self.root.grid_rowconfigure(1, weight=0)  # Linha para os checkboxes (não se expande)
 
         # --- Variáveis de Controle ---
         self.video_path = None
-        self.video_capture_full = None
-        self.video_capture_tile = None
+        self.chunk_data_path = None  # Variável para futuros dados de chunk
+        self.hm_data_path = None  # Variável para futuros dados de heatmap
+        self.video_capture_full: Optional[cv2.VideoCapture] = None
+        self.video_capture_tile: Optional[cv2.VideoCapture] = None
         self.checkbox_vars = {}
 
         # --- Criação dos Widgets ---
@@ -47,10 +50,10 @@ class VideoAnalysisApp:
 
     def _create_menu(self):
         """Cria a barra de menu superior."""
-        menu_bar = tk.Menu(self.root)
+        menu_bar = Menu(self.root)
         self.root.config(menu=menu_bar)
 
-        file_menu = tk.Menu(menu_bar, tearoff=0)
+        file_menu = Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Arquivo", menu=file_menu)
         file_menu.add_command(label="Abrir Vídeo...", command=self._open_video_file)
         file_menu.add_separator()
@@ -59,13 +62,13 @@ class VideoAnalysisApp:
     def _create_graph_area(self):
         """Cria a área de plotagem do Matplotlib à esquerda."""
         graph_frame = ttk.LabelFrame(self.root, text="Gráficos de Análise (Taxa de Bits, MSE, etc.)")
-        # O gráfico ocupará as 3 primeiras linhas da coluna 0
-        graph_frame.grid(row=0, column=0, rowspan=3, sticky="nsew", padx=10, pady=10)
+        # O gráfico ocupará a linha 0 da coluna 0
+        graph_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         graph_frame.grid_rowconfigure(0, weight=1)
         graph_frame.grid_columnconfigure(0, weight=1)
 
         # Dados de exemplo para o gráfico
-        fig = plt.figure()
+        fig = plt.figure(figsize=(8, 6), dpi=100)  # Define o tamanho da figura
         ax = fig.add_subplot(111)
         x = np.linspace(0, 10, 100)
         y1 = np.sin(x) * 1000 + 1500  # Exemplo de Taxa de Bits (kbps)
@@ -83,18 +86,28 @@ class VideoAnalysisApp:
         ax2.tick_params(axis='y', labelcolor='tab:red')
 
         fig.suptitle("Métricas de Qualidade do Vídeo")
-        fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+        fig.tight_layout(rect=(0., 0.03, 1., 0.95))  # Ajusta o layout para evitar sobreposição do título
 
         # Incorpora o gráfico no Tkinter
-        canvas = FigureCanvasTkAgg(fig, master=graph_frame)
-        canvas.draw()
-        canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+        self.canvas_grafico = FigureCanvasTkAgg(fig, master=graph_frame)
+        self.canvas_grafico.draw()
+        self.canvas_grafico.get_tk_widget().grid(row=0, column=0, sticky="nsew")
 
     def _create_video_players_area(self):
         """Cria os dois players de vídeo à direita."""
+        # Contêiner para os players de vídeo e o slider
+        self.right_side_container = ttk.Frame(self.root)
+        self.right_side_container.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
+
+        # Configura as linhas dentro do contêiner da direita
+        self.right_side_container.grid_rowconfigure(0, weight=1)  # Vídeo Completo
+        self.right_side_container.grid_rowconfigure(1, weight=1)  # Tile do Vídeo
+        self.right_side_container.grid_rowconfigure(2, weight=0)  # Slider (não se expande)
+        self.right_side_container.grid_columnconfigure(0, weight=1)
+
         # --- Player de Vídeo Completo ---
-        video_full_frame = ttk.LabelFrame(self.root, text="Vídeo Completo")
-        video_full_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=(10, 5))
+        video_full_frame = ttk.LabelFrame(self.right_side_container, text="Vídeo Completo")
+        video_full_frame.grid(row=0, column=0, sticky="nsew", padx=0, pady=(0, 5))
         video_full_frame.grid_rowconfigure(0, weight=1)
         video_full_frame.grid_columnconfigure(0, weight=1)
 
@@ -102,8 +115,8 @@ class VideoAnalysisApp:
         self.video_full_label.grid(row=0, column=0, sticky="nsew")
 
         # --- Player de Tile de Vídeo ---
-        video_tile_frame = ttk.LabelFrame(self.root, text="Tile do Vídeo")
-        video_tile_frame.grid(row=1, column=1, sticky="nsew", padx=10, pady=5)
+        video_tile_frame = ttk.LabelFrame(self.right_side_container, text="Tile do Vídeo")
+        video_tile_frame.grid(row=1, column=0, sticky="nsew", padx=0, pady=5)
         video_tile_frame.grid_rowconfigure(0, weight=1)
         video_tile_frame.grid_columnconfigure(0, weight=1)
 
@@ -112,8 +125,9 @@ class VideoAnalysisApp:
 
     def _create_tile_controls(self):
         """Cria o controle deslizante para o tamanho do tile."""
-        slider_frame = ttk.LabelFrame(self.root, text="Tamanho do Tile")
-        slider_frame.grid(row=2, column=1, sticky="ew", padx=10, pady=5)
+        # O slider agora está dentro do right_side_container
+        slider_frame = ttk.LabelFrame(self.right_side_container, text="Tamanho do Tile")
+        slider_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=(5, 0))
         slider_frame.grid_columnconfigure(0, weight=1)
 
         self.tile_size_slider = ttk.Scale(slider_frame, from_=10, to=100, orient="horizontal", command=self._on_slider_change)
@@ -123,17 +137,17 @@ class VideoAnalysisApp:
     def _create_settings_checkboxes(self):
         """Cria as caixas de seleção na parte inferior."""
         settings_frame = ttk.LabelFrame(self.root, text="Configurações")
-        settings_frame.grid(row=3, column=0, columnspan=2, sticky="ew", padx=10, pady=10)
+        settings_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10, pady=10)  # Ajustado para row=1 da raiz
 
         options = [
             "Habilitar Super-Resolução",
             "Exibir Vetores de Movimento",
             "Destacar Bordas",
             "Aplicar Filtro de Cor"
-            ]
+        ]
 
         for i, option_text in enumerate(options):
-            var = tk.BooleanVar()
+            var = BooleanVar()
             cb = ttk.Checkbutton(settings_frame, text=option_text, variable=var, command=self._on_checkbox_change)
             cb.pack(side="left", padx=10, pady=5)
             self.checkbox_vars[option_text] = var
@@ -142,20 +156,26 @@ class VideoAnalysisApp:
         """Abre um arquivo de vídeo e inicia a reprodução."""
         self.video_path = filedialog.askopenfilename(
             title="Selecione um arquivo de vídeo",
-            filetypes=(("Arquivos MP4", "*.mp4"), ("Arquivos AVI", "*.avi"), ("Todos os arquivos", "*.*"))
-            )
+            filetypes=(("Arquivos MP4", "*.mp4"),
+                       ("Arquivos AVI", "*.avi"),
+                       ("Todos os arquivos", "*.*"))
+        )
         if not self.video_path:
             return
 
         # Libera capturas anteriores se existirem
-        if self.video_capture_full:
+        if self.video_capture_full and self.video_capture_full.isOpened():
             self.video_capture_full.release()
-        if self.video_capture_tile:
+        if self.video_capture_tile and self.video_capture_tile.isOpened():
             self.video_capture_tile.release()
 
         # Inicia novas capturas para ambos os players
         self.video_capture_full = cv2.VideoCapture(self.video_path)
         self.video_capture_tile = cv2.VideoCapture(self.video_path)
+
+        if not self.video_capture_full.isOpened() or not self.video_capture_tile.isOpened():
+            print("Erro ao abrir o arquivo de vídeo.")
+            return
 
         # Inicia o loop de atualização dos frames
         self._update_full_video_frame()
@@ -163,6 +183,9 @@ class VideoAnalysisApp:
 
     def _update_full_video_frame(self):
         """Lê um frame do vídeo completo, converte e exibe."""
+        if not self.video_capture_full or not self.video_capture_full.isOpened():
+            return
+
         ret, frame = self.video_capture_full.read()
         if ret:
             # Redimensiona o frame para caber no label, mantendo a proporção
@@ -183,37 +206,67 @@ class VideoAnalysisApp:
             self.video_full_label.imgtk = imgtk
             self.video_full_label.configure(image=imgtk)
 
-            # Repete a função após ~33ms (aproximadamente 30 FPS)
-            self.root.after(33, self._update_full_video_frame)
         else:
             # Reinicia o vídeo quando chegar ao fim
             self.video_capture_full.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            self.root.after(33, self._update_full_video_frame)
+
+        # Repete a função após ~33ms (aproximadamente 30 FPS)
+        self.root.after(33, self._update_full_video_frame)
 
     def _update_tile_video_frame(self):
         """Lê um frame, recorta o tile e exibe."""
+        if not self.video_capture_tile or not self.video_capture_tile.isOpened():
+            return
+
         ret, frame = self.video_capture_tile.read()
         if ret:
             # Lógica para extrair o tile
             h, w, _ = frame.shape
             tile_size_percent = self.tile_size_slider.get() / 100.0
+
+            # Garante que o tile não seja maior que o frame original
             tile_w = int(w * tile_size_percent)
             tile_h = int(h * tile_size_percent)
+
+            # Garante que o tile tenha pelo menos 1x1 pixel
+            tile_w = max(1, tile_w)
+            tile_h = max(1, tile_h)
 
             # Pega o centro do frame como exemplo
             start_x = (w - tile_w) // 2
             start_y = (h - tile_h) // 2
 
-            tile_frame = frame[start_y:start_y + tile_h, start_x:start_x + tile_w]
+            # Garante que as coordenadas de início não sejam negativas
+            start_x = max(0, start_x)
+            start_y = max(0, start_y)
+
+            # Garante que as coordenadas finais não excedam as dimensões do frame
+            end_x = min(w, start_x + tile_w)
+            end_y = min(h, start_y + tile_h)
+
+            tile_frame = frame[start_y:end_y, start_x:end_x]
 
             # Redimensiona o tile para caber no label
             label_w = self.video_tile_label.winfo_width()
             label_h = self.video_tile_label.winfo_height()
+
+            # Verifica se o tile_frame não está vazio antes de redimensionar
             if label_w > 1 and label_h > 1 and tile_frame.size > 0:
                 frame_h, frame_w, _ = tile_frame.shape
+                # Evita divisão por zero se frame_w ou frame_h for 0
+                if frame_w == 0 or frame_h == 0:
+                    self.root.after(33, self._update_tile_video_frame)
+                    return
+
                 ratio = min(label_w / frame_w, label_h / frame_h)
                 new_dim = (int(frame_w * ratio), int(frame_h * ratio))
-                tile_frame = cv2.resize(tile_frame, new_dim, interpolation=cv2.INTER_AREA)
+
+                # Garante que new_dim tenha dimensões válidas para cv2.resize
+                if new_dim[0] > 0 and new_dim[1] > 0:
+                    tile_frame = cv2.resize(tile_frame, new_dim, interpolation=cv2.INTER_AREA)
+                else:
+                    self.root.after(33, self._update_tile_video_frame)
+                    return  # Pula este frame se as dimensões forem inválidas
 
             # Converte e exibe
             cv2image = cv2.cvtColor(tile_frame, cv2.COLOR_BGR2RGB)
@@ -245,6 +298,6 @@ class VideoAnalysisApp:
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = VideoAnalysisApp(root)
-    root.mainloop()
+    app_root = Tk()
+    app = VideoAnalysisApp(app_root)
+    app_root.mainloop()
