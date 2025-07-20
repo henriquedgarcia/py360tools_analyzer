@@ -155,47 +155,40 @@ class VideoAnalysisApp:
         self.tile_size_slider.set(50)  # Valor inicial
         self.tile_size_slider.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
 
+    def select_user(self):
+        name = self.combo1.get()
+        try:
+            name_list = self.head_movement.name.unique()
+            if name in name_list:
+                self.head_movement.loc[(name,)].index.unique('users')
+            self.combo6.values = self.head_movement.loc[(name,)].index.unique('users')
+        except AttributeError:
+            pass
+
     def _create_settings_checkboxes(self):
         """Cria as caixas de seleção na parte inferior."""
         self.settings_frame = ttk.Labelframe(self.root, text="Config")
         self.settings_frame.grid(row=1, column=0, columnspan=2, sticky="nswe", padx=10, pady=10)  # Ajustado para row=1 da raiz
 
-        def select_user():
-            name = combo1.get()
-            try:
-                name_list = self.head_movement.name.unique()
-                if name in name_list:
-                    self.head_movement.loc[(name,)].index.unique('users')
-                combo6.values = self.head_movement.loc[(name,)].index.unique('users')
-            except AttributeError:
-                pass
+        self.combo1 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # name_list
+        self.combo2 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # proj_list
+        self.combo3 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # tiling
+        self.combo4 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # quality
+        self.combo5 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # chunk
+        self.combo6 = ttk.Combobox(self.settings_frame, values=[], state="readonly", postcommand=select_user)  # user
+        self.combo1.grid(row=0, column=0, padx=5, pady=5)
+        self.combo2.grid(row=0, column=1, padx=5, pady=5)
+        self.combo3.grid(row=0, column=2, padx=5, pady=5)
+        self.combo4.grid(row=0, column=3, padx=5, pady=5)
+        self.combo5.grid(row=0, column=4, padx=5, pady=5)
+        self.combo6.grid(row=0, column=5, padx=5, pady=5)
 
-        combo1 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # name_list
-        combo2 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # proj_list
-        combo3 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # tiling
-        combo4 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # quality
-        combo5 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # chunk
-        combo6 = ttk.Combobox(self.settings_frame, values=[], state="readonly", postcommand=select_user)  # user
-        combo1.grid(row=0, column=0, padx=5, pady=5)
-        combo2.grid(row=0, column=1, padx=5, pady=5)
-        combo3.grid(row=0, column=2, padx=5, pady=5)
-        combo4.grid(row=0, column=3, padx=5, pady=5)
-        combo5.grid(row=0, column=4, padx=5, pady=5)
-        combo6.grid(row=0, column=5, padx=5, pady=5)
-        combo1.set('name')
-        combo2.set('projection')
-        combo3.set('tiling')
-        combo4.set('quality')
-        combo5.set('chunk')
-        combo6.set('user')
-
-
-        def select_user(event):
-            name = combo1.get()
-            if name in self.head_movement.name.unique():
-                self.head_movement.loc[(name,)].index.unique('users')
-            combo6.values = self.head_movement.loc[(name,)].index.unique('users')
-        combo1.bind("<<ComboboxSelected>>", select_user)
+        self.combo1.set('name')
+        self.combo2.set('projection')
+        self.combo3.set('tiling')
+        self.combo4.set('quality')
+        self.combo5.set('chunk')
+        self.combo6.set('user')
 
     def _open_video_file(self):
         """Abre um arquivo de vídeo e inicia a reprodução."""
