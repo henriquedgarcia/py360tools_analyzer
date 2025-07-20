@@ -1,4 +1,6 @@
-from tkinter import ttk, filedialog, Tk, Menu, BooleanVar
+import json
+from pathlib import Path
+from tkinter import ttk, filedialog, Tk, Menu
 from typing import Optional
 
 # Para reprodução de vídeo, você precisará do OpenCV e Pillow
@@ -6,6 +8,7 @@ from typing import Optional
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -154,54 +157,94 @@ class VideoAnalysisApp:
 
     def _create_settings_checkboxes(self):
         """Cria as caixas de seleção na parte inferior."""
-        settings_frame = ttk.LabelFrame(self.root, text="Configurações")
-        settings_frame.grid(row=1, column=0, columnspan=2, sticky="ew", padx=10, pady=10)  # Ajustado para row=1 da raiz
+        self.settings_frame = ttk.Labelframe(self.root, text="Config")
+        self.settings_frame.grid(row=1, column=0, columnspan=2, sticky="nswe", padx=10, pady=10)  # Ajustado para row=1 da raiz
 
-        options = [
-            "Habilitar Super-Resolução",
-            "Exibir Vetores de Movimento",
-            "Destacar Bordas",
-            "Aplicar Filtro de Cor"
-        ]
+        def select_user():
+            name = combo1.get()
+            try:
+                name_list = self.head_movement.name.unique()
+                if name in name_list:
+                    self.head_movement.loc[(name,)].index.unique('users')
+                combo6.values = self.head_movement.loc[(name,)].index.unique('users')
+            except AttributeError:
+                pass
 
-        for i, option_text in enumerate(options):
-            var = BooleanVar()
-            cb = ttk.Checkbutton(settings_frame, text=option_text, variable=var, command=self._on_checkbox_change)
-            cb.pack(side="left", padx=10, pady=5)
-            self.checkbox_vars[option_text] = var
+        combo1 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # name_list
+        combo2 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # proj_list
+        combo3 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # tiling
+        combo4 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # quality
+        combo5 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # chunk
+        combo6 = ttk.Combobox(self.settings_frame, values=[], state="readonly", postcommand=select_user)  # user
+        combo1.grid(row=0, column=0, padx=5, pady=5)
+        combo2.grid(row=0, column=1, padx=5, pady=5)
+        combo3.grid(row=0, column=2, padx=5, pady=5)
+        combo4.grid(row=0, column=3, padx=5, pady=5)
+        combo5.grid(row=0, column=4, padx=5, pady=5)
+        combo6.grid(row=0, column=5, padx=5, pady=5)
+        combo1.set('name')
+        combo2.set('projection')
+        combo3.set('tiling')
+        combo4.set('quality')
+        combo5.set('chunk')
+        combo6.set('user')
+
+
+        def select_user(event):
+            name = combo1.get()
+            if name in self.head_movement.name.unique():
+                self.head_movement.loc[(name,)].index.unique('users')
+            combo6.values = self.head_movement.loc[(name,)].index.unique('users')
+        combo1.bind("<<ComboboxSelected>>", select_user)
 
     def _open_video_file(self):
         """Abre um arquivo de vídeo e inicia a reprodução."""
-        self.meta_path = filedialog.askopenfilename(
+        self.json_path = filedialog.askopenfilename(
             title="Selecione um arquivo de vídeo",
             filetypes=(("Arquivos JSON", "*.json"),
                        ("Todos os arquivos", "*.*"))
         )
-        if not self.video_path:
-            return
+        self.json_path = Path(self.json_path)
+        meta_data = json.loads(self.json_path.read_text())
 
-        # Libera capturas anteriores se existirem
-        if self.video_capture_full and self.video_capture_full.isOpened():
-            self.video_capture_full.release()
-        if self.video_capture_tile and self.video_capture_tile.isOpened():
-            self.video_capture_tile.release()
+        chunk_data_path = 'dataset/' + meta_data['chunk_data']['path']
+        head_movement_path = 'dataset/' + meta_data['head_movement']['path']
+        tiles_seen_path = 'dataset/' + meta_data['tiles_seen']['path']
+        viewport_quality_path = 'dataset/' + meta_data['viewport_quality']['path']
 
-        # Inicia novas capturas para ambos os players
-        self.video_capture_full = cv2.VideoCapture(self.video_path)
-        self.video_capture_tile = cv2.VideoCapture(self.video_path)
+        self.chunk_data = pd.read_hdf(chunk_data_path)
+        self.head_movement = pd.read_hdf(head_movement_path)
+        self.tiles_seen = pd.read_hdf(tiles_seen_path)
+        self.viewport_quality = pd.read_hdf(viewport_quality_path)
 
-        if not self.video_capture_full.isOpened() or not self.video_capture_tile.isOpened():
-            print("Erro ao abrir o arquivo de vídeo.")
-            return
+        # initial State
+        self.name = ''
+        self.projection = 'cmp'
+        self.tiling = '1x1'
+        self.quality = 16
+        self.chunk = 0
+        self.user = 'mean'
 
-        # Força o Tkinter a calcular os tamanhos dos widgets antes de iniciar a reprodução.
-        self.root.update_idletasks()
-        # Chama a função de redimensionamento para garantir que as dimensões iniciais sejam capturadas
-        self._on_right_side_container_resize()
+        def open_video():
+            # Libera capturas anteriores se existirem
+            if self.video_capture_full and self.video_capture_full.isOpened():
+                self.video_capture_full.release()
 
-        # Inicia o loop de atualização dos frames
-        self.root.after(33, self._update_full_video_frame)
-        self.root.after(33, self._update_tile_video_frame)
+            # Inicia novas capturas para ambos os players
+            self.video_capture_full = cv2.VideoCapture(self.video_path)
+
+            if not self.video_capture_full.isOpened():
+                print("Erro ao abrir o arquivo de vídeo.")
+                return
+
+            # Força o Tkinter a calcular os tamanhos dos widgets antes de iniciar a reprodução.
+            self.root.update_idletasks()
+            # Chama a função de redimensionamento para garantir que as dimensões iniciais sejam capturadas
+            self._on_right_side_container_resize()
+
+            # Inicia o loop de atualização dos frames
+            self.root.after(33, self._update_full_video_frame)
+            self.root.after(33, self._update_tile_video_frame)
 
     def _update_full_video_frame(self):
         """Lê um frame do vídeo completo, converte e exibe."""
@@ -236,6 +279,7 @@ class VideoAnalysisApp:
             imgtk = ImageTk.PhotoImage(image=img)
 
             self.video_full_label.imgtk = imgtk
+            # noinspection PyTypeChecker
             self.video_full_label.configure(image=imgtk)
 
         else:
@@ -300,6 +344,7 @@ class VideoAnalysisApp:
             imgtk = ImageTk.PhotoImage(image=img)
 
             self.video_tile_label.imgtk = imgtk
+            # noinspection PyTypeChecker
             self.video_tile_label.configure(image=imgtk)
 
             self.root.after(33, self._update_tile_video_frame)
