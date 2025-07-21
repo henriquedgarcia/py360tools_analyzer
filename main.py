@@ -1,7 +1,8 @@
 import json
+import tkinter as tk
 from pathlib import Path
 from tkinter import ttk, filedialog, Tk, Menu
-from typing import Optional
+from typing import Optional, Callable, Any
 
 # Para reprodução de vídeo, você precisará do OpenCV e Pillow
 # Instale com: pip install opencv-python pillow
@@ -11,56 +12,23 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from numpy import ndarray, dtype, floating
 
 
-class VideoAnalysisApp:
-    """
-    Uma aplicação de GUI para análise de vídeo com gráficos e players.
-    """
-
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Analisador de Vídeo e Gráficos")
-        self.root.geometry("1200x800")
-
-        # --- Configuração do Layout Principal ---
-        # A grade principal terá 2 colunas e 3 linhas
-        # A coluna 0 (gráficos) será mais larga que a coluna 1 (vídeos e controles)
-        self.root.grid_columnconfigure(0, weight=1)  # Coluna do gráfico
-        self.root.grid_columnconfigure(1, weight=1)  # Coluna dos vídeos/controles
-
-        # As linhas da raiz:
-        # Linha 0: Área principal (gráfico à esquerda, vídeos/slider à direita)
-        # Linha 1: Checkboxes (inferior)
-        self.root.grid_rowconfigure(0, weight=1)  # Linha principal de conteúdo (gráfico e vídeos)
-        self.root.grid_rowconfigure(1, weight=0)  # Linha para os checkboxes (não se expande)
-
-        # --- Variáveis de Controle ---
-        self.video_path = None
-        self.chunk_data_path = None  # Variável para futuros dados de chunk
-        self.hm_data_path = None  # Variável para futuros dados de heatmap
-        self.video_capture_full: Optional[cv2.VideoCapture] = None
-        self.video_capture_tile: Optional[cv2.VideoCapture] = None
-        self.checkbox_vars = {}
-
-        # Variáveis para armazenar as dimensões de exibição dos vídeos
-        # Inicializadas com valores mínimos, serão atualizadas pelo evento <Configure>
-        self.full_video_display_w = 1
-        self.full_video_display_h = 1
-        self.tile_video_display_w = 1
-        self.tile_video_display_h = 1
-
-        # --- Criação dos Widgets ---
-        self._create_menu()
-        self._create_graph_area()
-        self._create_video_players_area()
-        self._create_tile_controls()
-        self._create_settings_checkboxes()
-
-        # Vincula o evento <Configure> do contêiner da direita para atualizar as dimensões
-        # Isso garante que as dimensões de display sejam sempre as corretas,
-        # mesmo após o redimensionamento da janela.
-        self.right_side_container.bind('<Configure>', self._on_right_side_container_resize)
+class CreateMethods:
+    root: Tk
+    _open_video_file: Callable
+    make_twin_plot: Callable
+    update_graph_canvas: Callable
+    # _on_slider_change: Callable[[], None]
+    # _on_right_side_container_resize: Callable[[], None]
+    # graph_frame: ttk.Frame
+    # video_full_frame: ttk.LabelFrame
+    # video_tile_frame: ttk.LabelFrame
+    # video_full_label: ttk.Label
+    # video_tile_label: ttk.Label
+    # tile_size_slider: ttk.Scale
+    # botao_play: ttk.Button
 
     def _create_menu(self):
         """Cria a barra de menu superior."""
@@ -69,43 +37,28 @@ class VideoAnalysisApp:
 
         file_menu = Menu(menu_bar, tearoff=0)
         menu_bar.add_cascade(label="Arquivo", menu=file_menu)
-        file_menu.add_command(label="Abrir Vídeo...", command=self._open_video_file)
+        file_menu.add_command(label="Open...", command=self._open_video_file)
         file_menu.add_separator()
         file_menu.add_command(label="Sair", command=self.root.quit)
 
     def _create_graph_area(self):
         """Cria a área de plotagem do Matplotlib à esquerda."""
-        graph_frame = ttk.Frame(self.root)
+        self.graph_frame = ttk.Frame(self.root)
         # O gráfico ocupará a linha 0 da coluna 0
-        graph_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
-        graph_frame.grid_rowconfigure(0, weight=1)
-        graph_frame.grid_columnconfigure(0, weight=1)
+        self.graph_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
+        self.graph_frame.grid_rowconfigure(0, weight=1)
+        self.graph_frame.grid_columnconfigure(0, weight=1)
 
-        # Dados de exemplo para o gráfico
-        fig = plt.figure(figsize=(8, 6), dpi=100)  # Define o tamanho da figura
-        ax = fig.add_subplot(111)
-        x = np.linspace(0, 10, 100)
+        x: ndarray = np.linspace(0, 10, 100)
         y1 = np.sin(x) * 1000 + 1500  # Exemplo de Taxa de Bits (kbps)
         y2 = np.cos(x) ** 2 * 30 + 5  # Exemplo de MSE
 
-        ax.plot(x, y1, label="Taxa de Bits (kbps)")
-        ax.set_xlabel("Tempo (s)")
-        ax.set_ylabel("Taxa de Bits (kbps)", color='tab:blue')
-        ax.tick_params(axis='y', labelcolor='tab:blue')
-
-        # Eixo Y secundário para MSE
-        ax2 = ax.twinx()
-        ax2.plot(x, y2, label="MSE", color='tab:red', linestyle='--')
-        ax2.set_ylabel("MSE", color='tab:red')
-        ax2.tick_params(axis='y', labelcolor='tab:red')
-
-        fig.suptitle("Métricas de Qualidade do Vídeo")
-        fig.tight_layout(rect=(0., 0.03, 1., 0.95))  # Ajusta o layout para evitar sobreposição do título
-
-        # Incorpora o gráfico no Tkinter
-        self.canvas_grafico = FigureCanvasTkAgg(fig, master=graph_frame)
-        self.canvas_grafico.draw()
-        self.canvas_grafico.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+        fig = self.make_twin_plot(x, y1, y2,
+                                  xlabel="Tempo (s)",
+                                  ylabel1="Taxa de Bits (kbps)",
+                                  ylabel2="MSE",
+                                  suptitle="Métricas de Qualidade do Vídeo")
+        self.update_graph_canvas(fig)
 
     def _create_video_players_area(self):
         """Cria os dois players de vídeo à direita."""
@@ -144,26 +97,22 @@ class VideoAnalysisApp:
         self.video_tile_label = ttk.Label(self.video_tile_frame, background="black")
         self.video_tile_label.grid(row=0, column=0, sticky="nsew")
 
-    def _create_tile_controls(self):
+    def _create_viewport_controls(self):
         """Cria o controle deslizante para o tamanho do tile."""
         # O slider agora está dentro do right_side_container
         slider_frame = ttk.LabelFrame(self.right_side_container, text="Tamanho do Tile")
         slider_frame.grid(row=2, column=0, sticky="ew", padx=0, pady=(5, 0))
         slider_frame.grid_columnconfigure(0, weight=1)
 
-        self.tile_size_slider = ttk.Scale(slider_frame, from_=10, to=100, orient="horizontal", command=self._on_slider_change)
-        self.tile_size_slider.set(50)  # Valor inicial
-        self.tile_size_slider.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        self.botao_play = ttk.Button(slider_frame, text="\u23F8", command=self.play_pause)
+        self.botao_play.grid(row=0, column=1, padx=5)
+        ttk.Button(slider_frame, text="\u23F9", command=self.parar).grid(row=0, column=2, padx=5)
+        ttk.Button(slider_frame, text="Rewind", command=self.rewind).grid(row=0, column=3, padx=5)
+        ttk.Checkbutton(slider_frame, text="Repetir", variable=self.repetir).grid(row=0, column=4, padx=5)
 
-    def select_user(self):
-        name = self.combo1.get()
-        try:
-            name_list = self.head_movement.name.unique()
-            if name in name_list:
-                self.head_movement.loc[(name,)].index.unique('users')
-            self.combo6.values = self.head_movement.loc[(name,)].index.unique('users')
-        except AttributeError:
-            pass
+        # self.tile_size_slider = ttk.Scale(slider_frame, from_=10, to=100, orient="horizontal", command=self._on_slider_change)
+        # self.tile_size_slider.set(50)  # Valor inicial
+        # self.tile_size_slider.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
 
     def _create_settings_checkboxes(self):
         """Cria as caixas de seleção na parte inferior."""
@@ -175,7 +124,7 @@ class VideoAnalysisApp:
         self.combo3 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # tiling
         self.combo4 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # quality
         self.combo5 = ttk.Combobox(self.settings_frame, values=[], state="readonly")  # chunk
-        self.combo6 = ttk.Combobox(self.settings_frame, values=[], state="readonly", postcommand=select_user)  # user
+        self.combo6 = ttk.Combobox(self.settings_frame, values=[], state="readonly", postcommand=self._select_user)  # user
         self.combo1.grid(row=0, column=0, padx=5, pady=5)
         self.combo2.grid(row=0, column=1, padx=5, pady=5)
         self.combo3.grid(row=0, column=2, padx=5, pady=5)
@@ -189,6 +138,94 @@ class VideoAnalysisApp:
         self.combo4.set('quality')
         self.combo5.set('chunk')
         self.combo6.set('user')
+
+
+class VideoAnalysisApp(CreateMethods):
+    """
+    Uma aplicação de GUI para análise de vídeo com gráficos e players.
+    """
+
+    def __init__(self, root):
+        self.graph_canvas = None
+        self.root = root
+        self.root.title("Analisador de Vídeo e Gráficos")
+        self.root.geometry("1200x800")
+        self.repetir = tk.BooleanVar()
+
+        # --- Configuração do Layout Principal ---
+        # A grade principal terá 2 colunas e 3 linhas
+        # A coluna 0 (gráficos) será mais larga que a coluna 1 (vídeos e controles)
+        self.root.grid_columnconfigure(0, weight=1)  # Coluna do gráfico
+        self.root.grid_columnconfigure(1, weight=1)  # Coluna dos vídeos/controles
+
+        # As linhas da raiz:
+        # Linha 0: Área principal (gráfico à esquerda, vídeos/slider à direita)
+        # Linha 1: Checkboxes (inferior)
+        self.root.grid_rowconfigure(0, weight=1)  # Linha principal de conteúdo (gráfico e vídeos)
+        self.root.grid_rowconfigure(1, weight=0)  # Linha para os checkboxes (não se expande)
+
+        # --- Variáveis de Controle ---
+        self.video_path = None
+        self.chunk_data_path = None  # Variável para futuros dados de chunk
+        self.hm_data_path = None  # Variável para futuros dados de heatmap
+        self.video_capture_full: Optional[cv2.VideoCapture] = None
+        self.video_capture_tile: Optional[cv2.VideoCapture] = None
+        self.checkbox_vars = {}
+
+        # Variáveis para armazenar as dimensões de exibição dos vídeos
+        # Inicializadas com valores mínimos, serão atualizadas pelo evento <Configure>
+        self.full_video_display_w = 1
+        self.full_video_display_h = 1
+        self.tile_video_display_w = 1
+        self.tile_video_display_h = 1
+
+        # --- Criação dos Widgets ---
+        self._create_menu()
+        self._create_graph_area()
+        self._create_video_players_area()
+        self._create_viewport_controls()
+        self._create_settings_checkboxes()
+
+        # Vincula o evento <Configure> do contêiner da direita para atualizar as dimensões
+        # Isso garante que as dimensões de display sejam sempre as corretas,
+        # mesmo após o redimensionamento da janela.
+        self.right_side_container.bind('<Configure>', self._on_right_side_container_resize)
+
+    @staticmethod
+    def make_twin_plot(x, y1, y2, xlabel, ylabel1, ylabel2, suptitle) -> plt.Figure:
+        # Dados de exemplo para o gráfico
+        fig = plt.figure(figsize=(8, 6), dpi=100)  # Define o tamanho da figura
+        ax = fig.add_subplot(111)
+
+        ax.plot(x, y1, label=ylabel1)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel1, color='tab:blue')
+        ax.tick_params(axis='y', labelcolor='tab:blue')
+
+        # Eixo Y secundário para MSE
+        ax2 = ax.twinx()
+        ax2.plot(x, y2, label=ylabel2, color='tab:red', linestyle='--')
+        ax2.set_ylabel(ylabel2, color='tab:red')
+        ax2.tick_params(axis='y', labelcolor='tab:red')
+
+        fig.suptitle(suptitle)
+        fig.tight_layout(rect=(0., 0.03, 1., 0.95))  # Ajusta o layout para evitar sobreposição do título
+        return fig
+
+    def update_graph_canvas(self, fig: plt.Figure):
+        # Incorpora o gráfico no Tkinter
+        self.graph_canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
+        self.graph_canvas.draw()
+        self.graph_canvas.get_tk_widget().grid(row=0, column=0, sticky="nsew")
+
+    def _select_user(self):
+        name = self.combo1.get()
+        try:
+            name_list = self.head_movement.name.unique()
+            if name in name_list:
+                self.combo6.values = self.head_movement.loc[(name,)].index.unique('users')
+        except AttributeError:
+            pass
 
     def _open_video_file(self):
         """Abre um arquivo de vídeo e inicia a reprodução."""
@@ -209,14 +246,21 @@ class VideoAnalysisApp:
         self.head_movement = pd.read_hdf(head_movement_path)
         self.tiles_seen = pd.read_hdf(tiles_seen_path)
         self.viewport_quality = pd.read_hdf(viewport_quality_path)
-
-        # initial State
-        self.name = ''
+        # Define o estado inicial
+        # prepara dataset para estatísticas da configuração
+        # cria o gráfico no estado inicial
+        # reproduz o vídeo sob certa condição
+        # condição: nenhum estado deve ser uma estatística
+        # criar o dict de paths para 2 chunks (1 de buffer)
+        # instanciar o mount_frame (full ou só os vistos)
+        # extrair um framde da projeção  # por frame
+        # extrair um viewport            # por frame
+        self.name = 'cable_cam'
         self.projection = 'cmp'
         self.tiling = '1x1'
         self.quality = 16
-        self.chunk = 0
-        self.user = 'mean'
+        # self.chunk = XX - o chunk não terá um estado inicial pois o gráfico é uma série temporal
+        self.user = 0
 
         def open_video():
             # Libera capturas anteriores se existirem
@@ -280,70 +324,70 @@ class VideoAnalysisApp:
 
         self.root.after(33, self._update_full_video_frame)
 
-    def _update_tile_video_frame(self):
-        """Lê um frame, recorta o tile e exibe."""
-        if not self.video_capture_tile or not self.video_capture_tile.isOpened():
-            return
-
-        ret, frame = self.video_capture_tile.read()
-        if ret:
-            # Lógica para extrair o tile
-            h, w, _ = frame.shape
-            tile_size_percent = self.tile_size_slider.get() / 100.0
-
-            tile_w = int(w * tile_size_percent)
-            tile_h = int(h * tile_size_percent)
-
-            tile_w = max(1, tile_w)
-            tile_h = max(1, tile_h)
-
-            start_x = (w - tile_w) // 2
-            start_y = (h - tile_h) // 2
-
-            start_x = max(0, start_x)
-            start_y = max(0, start_y)
-
-            end_x = min(w, start_x + tile_w)
-            end_y = min(h, start_y + tile_h)
-
-            tile_frame = frame[start_y:end_y, start_x:end_x]
-
-            # Usa as dimensões de exibição armazenadas nas variáveis de instância
-            target_w = self.tile_video_display_w
-            target_h = self.tile_video_display_h
-
-            if target_w > 1 and target_h > 1 and tile_frame.size > 0:
-                frame_h, frame_w, _ = tile_frame.shape
-                if frame_w == 0 or frame_h == 0:
-                    self.root.after(33, self._update_tile_video_frame)
-                    return
-
-                ratio_w = target_w / frame_w
-                ratio_h = target_h / frame_h
-
-                ratio = min(ratio_w, ratio_h)
-
-                new_dim = (int(frame_w * ratio), int(frame_h * ratio))
-                new_dim = (max(1, new_dim[0]), max(1, new_dim[1]))  # Garante pelo menos 1x1
-
-                if new_dim[0] > 0 and new_dim[1] > 0:
-                    tile_frame = cv2.resize(tile_frame, new_dim, interpolation=cv2.INTER_AREA)
-                else:
-                    self.root.after(33, self._update_tile_video_frame)
-                    return
-
-            cv2image = cv2.cvtColor(tile_frame, cv2.COLOR_BGR2RGB)
-            img = Image.fromarray(cv2image)
-            imgtk = ImageTk.PhotoImage(image=img)
-
-            self.video_tile_label.imgtk = imgtk
-            # noinspection PyTypeChecker
-            self.video_tile_label.configure(image=imgtk)
-
-            self.root.after(33, self._update_tile_video_frame)
-        else:
-            self.video_capture_tile.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            self.root.after(33, self._update_tile_video_frame)
+    # def _update_tile_video_frame(self):
+    #     """Lê um frame, recorta o tile e exibe."""
+    #     if not self.video_capture_tile or not self.video_capture_tile.isOpened():
+    #         return
+    #
+    #     ret, frame = self.video_capture_tile.read()
+    #     if ret:
+    #         # Lógica para extrair o tile
+    #         h, w, _ = frame.shape
+    #         tile_size_percent = self.tile_size_slider.get() / 100.0
+    #
+    #         tile_w = int(w * tile_size_percent)
+    #         tile_h = int(h * tile_size_percent)
+    #
+    #         tile_w = max(1, tile_w)
+    #         tile_h = max(1, tile_h)
+    #
+    #         start_x = (w - tile_w) // 2
+    #         start_y = (h - tile_h) // 2
+    #
+    #         start_x = max(0, start_x)
+    #         start_y = max(0, start_y)
+    #
+    #         end_x = min(w, start_x + tile_w)
+    #         end_y = min(h, start_y + tile_h)
+    #
+    #         tile_frame = frame[start_y:end_y, start_x:end_x]
+    #
+    #         # Usa as dimensões de exibição armazenadas nas variáveis de instância
+    #         target_w = self.tile_video_display_w
+    #         target_h = self.tile_video_display_h
+    #
+    #         if target_w > 1 and target_h > 1 and tile_frame.size > 0:
+    #             frame_h, frame_w, _ = tile_frame.shape
+    #             if frame_w == 0 or frame_h == 0:
+    #                 self.root.after(33, self._update_tile_video_frame)
+    #                 return
+    #
+    #             ratio_w = target_w / frame_w
+    #             ratio_h = target_h / frame_h
+    #
+    #             ratio = min(ratio_w, ratio_h)
+    #
+    #             new_dim = (int(frame_w * ratio), int(frame_h * ratio))
+    #             new_dim = (max(1, new_dim[0]), max(1, new_dim[1]))  # Garante pelo menos 1x1
+    #
+    #             if new_dim[0] > 0 and new_dim[1] > 0:
+    #                 tile_frame = cv2.resize(tile_frame, new_dim, interpolation=cv2.INTER_AREA)
+    #             else:
+    #                 self.root.after(33, self._update_tile_video_frame)
+    #                 return
+    #
+    #         cv2image = cv2.cvtColor(tile_frame, cv2.COLOR_BGR2RGB)
+    #         img = Image.fromarray(cv2image)
+    #         imgtk = ImageTk.PhotoImage(image=img)
+    #
+    #         self.video_tile_label.imgtk = imgtk
+    #         # noinspection PyTypeChecker
+    #         self.video_tile_label.configure(image=imgtk)
+    #
+    #         self.root.after(33, self._update_tile_video_frame)
+    #     else:
+    #         self.video_capture_tile.set(cv2.CAP_PROP_POS_FRAMES, 0)
+    #         self.root.after(33, self._update_tile_video_frame)
 
     def _on_slider_change(self, value):
         """Chamado quando o valor do slider muda."""
