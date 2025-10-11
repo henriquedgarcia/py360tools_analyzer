@@ -61,10 +61,23 @@ def config_main(app_root):
     app_root.grid_rowconfigure(4, weight=1)  # gráficos
 
 
-def create_menu(app_root):
-    # todo: falta tudo
-    ...
+def open_video(): ...
 
+
+def open_hmd(): ...
+
+
+def create_menu(app_root):
+    menu_frame = ttk.Frame(app_root)
+    menu_frame.grid(row=0, column=0, sticky="ew", padx=0, pady=(5, 0))
+    menu_frame.grid_columnconfigure(0, weight=1)
+
+    open_video_button = ttk.Button(menu_frame, text="Abrir Video Json",
+                                   command=open_video)
+    open_hmd_button = ttk.Button(menu_frame, text="Abrir HMD Dataset",
+                                   command=open_hmd)
+    open_video_button.grid(row=0, column=1, padx=0, sticky='w')
+    open_hmd_button.grid(row=0, column=1, padx=0, sticky='w')
 
 def create_settings_comboboxes(app_root):
     """Cria as caixas de seleção na parte inferior."""
@@ -83,7 +96,7 @@ def create_settings_comboboxes(app_root):
             name_list = dataset['head_movement'].name.unique()
             if name in name_list:
                 # O que é isso?
-                combo_list[5].values = dataset['head_movement'].loc[(name,)].index.unique('users')
+                combo_list[5].config(values=dataset['head_movement'].loc[(name,)].index.unique('users'))
         except AttributeError:
             pass
 
@@ -131,7 +144,6 @@ def create_players(app_root):
     video_full_label = ttk.Label(video_frame, background="black")
     video_full_label.grid(row=0, column=0, sticky="nsew")
 
-
 def create_controls(app_root):
     # todo: faltam implementar as funções de controle
     def rewind(): ...
@@ -156,8 +168,9 @@ def create_controls(app_root):
 
 
 def create_graphs(app_root):
+    graphs_frame = ttk.LabelFrame(app_root, text="Gráficos")
+    graphs_frame.grid(row=4, column=0, sticky="nsew", padx=10, pady=(5, 0))
     # todo: Falta tudo
-    ...
 
 
 if __name__ == "__main__":
