@@ -1,6 +1,37 @@
-from tkinter import Tk, ttk, BooleanVar
+import json
+from pathlib import Path
+from tkinter import Tk, ttk, BooleanVar, Label, StringVar, filedialog
 
-dataset = {}  # 'head_movement'
+import pandas as pd
+
+
+class Config:
+    config: dict
+
+    video_list: list[str]
+    projection_list: list[str]
+    tiling_list: list[str]
+    quality_list: list[int]
+
+    head_movement_filename: str
+    tiles_seen_filename: str
+    viewport_quality_filename: str
+    chunk_data_filename: str
+
+    head_movement_data: pd.DataFrame
+    tiles_seen_data: pd.DataFrame
+    viewport_quality_data: pd.DataFrame
+    chunk_data: pd.DataFrame
+
+    def __init__(self, config_file):
+        self.config = json.loads(Path(config_file).read_text())
+        self.video_list = self.config['video_list']
+        self.projection_list = self.config['projection_list']
+        self.tiling_list = self.config['tiling_list']
+        self.quality_list = self.config['quality_list']
+
+
+config: Config
 
 
 def main():
@@ -26,27 +57,11 @@ def main():
     app_root = Tk()
     config_main(app_root)
     create_menu(app_root)
-    create_settings_comboboxes(app_root)
-    create_players(app_root)
-    create_controls(app_root)
-    create_graphs(app_root)
+    # create_settings_comboboxes(app_root)
+    # create_players(app_root)
+    # create_controls(app_root)
+    # create_graphs(app_root)
     app_root.mainloop()
-
-
-# def _on_right_side_container_resize(app_root):
-#     # todo: ajustar esta função para que os frames do vídeo não varia de tamanho ao longo da reprodução. Não implementar ainda, apenas se necessário.
-#     """
-#     Atualiza as dimensões de exibição dos vídeos quando o contêiner da direita é redimensionado.
-#     """
-#     # Força o Tkinter a calcular os tamanhos internos dos widgets
-#     app_root.update_idletasks()
-#
-#     # Atualiza as dimensões de exibição usando os tamanhos dos LabelFrames pais
-#     # Agora, a altura será o valor fixo que definimos
-#     video_display_w = video_frame.winfo_width()
-#     video_display_h = video_frame.winfo_height()
-#     viewport_display_w = viewport_frame.winfo_width()
-#     viewport_display_h = viewport_frame.winfo_height()
 
 
 def config_main(app_root):
@@ -54,30 +69,32 @@ def config_main(app_root):
     app_root.geometry("1200x800")
 
     # --- Configuração do Layout Principal ---
-    app_root.grid_rowconfigure(0, weight=1)  # menu abrir
-    app_root.grid_rowconfigure(1, weight=1)  # Options
-    app_root.grid_rowconfigure(2, weight=1)  # players
-    app_root.grid_rowconfigure(3, weight=1)  # controle do player
+    app_root.grid_rowconfigure(0, weight=0)  # menu abrir
+    app_root.grid_rowconfigure(1, weight=0)  # Options
+    app_root.grid_rowconfigure(2, weight=0)  # players
+    app_root.grid_rowconfigure(3, weight=0)  # controle do player
     app_root.grid_rowconfigure(4, weight=1)  # gráficos
 
 
-def open_video(): ...
-
-
-def open_hmd(): ...
-
-
 def create_menu(app_root):
-    menu_frame = ttk.Frame(app_root)
-    menu_frame.grid(row=0, column=0, sticky="ew", padx=0, pady=(5, 0))
-    menu_frame.grid_columnconfigure(0, weight=1)
+    nome_arquivo = StringVar(value="Nenhum arquivo selecionado")
 
-    open_video_button = ttk.Button(menu_frame, text="Abrir Video Json",
-                                   command=open_video)
-    open_hmd_button = ttk.Button(menu_frame, text="Abrir HMD Dataset",
-                                   command=open_hmd)
-    open_video_button.grid(row=0, column=1, padx=0, sticky='w')
-    open_hmd_button.grid(row=0, column=1, padx=0, sticky='w')
+    def open_config():
+        caminho = filedialog.askopenfilename(title="Selecione um arquivo", filetypes=[('application/json', '*.json')])
+        nome_arquivo.set(caminho.split("/")[-1])  # só o nome do arquivo
+
+        global config
+        config = Config(caminho)
+
+    menu_frame = ttk.Frame(app_root)
+    menu_frame.grid(row=0, column=0, padx=0, pady=5)
+
+    open_video_button = ttk.Button(menu_frame, command=open_config, text="Abrir Video Json")
+    open_video_button.grid(row=0, column=0, padx=10)
+
+    open_video_label = Label(menu_frame, textvariable=nome_arquivo)
+    open_video_label.grid(row=0, column=1, padx=10, sticky="ew")
+
 
 def create_settings_comboboxes(app_root):
     """Cria as caixas de seleção na parte inferior."""
@@ -93,14 +110,14 @@ def create_settings_comboboxes(app_root):
     def select_user():
         name = combo_list[0].get()
         try:
-            name_list = dataset['head_movement'].name.unique()
+            name_list = chunk_data['head_movement'].name.unique()
             if name in name_list:
                 # O que é isso?
-                combo_list[5].config(values=dataset['head_movement'].loc[(name,)].index.unique('users'))
+                combo_list[5].config(values=chunk_data['head_movement'].loc[(name,)].index.unique('users'))
         except AttributeError:
             pass
 
-    combo_list[5].configure(postcommand=select_user)
+    combo_list[4].configure(postcommand=select_user)
 
 
 def create_players(app_root):
@@ -144,6 +161,7 @@ def create_players(app_root):
     video_full_label = ttk.Label(video_frame, background="black")
     video_full_label.grid(row=0, column=0, sticky="nsew")
 
+
 def create_controls(app_root):
     # todo: faltam implementar as funções de controle
     def rewind(): ...
@@ -156,8 +174,8 @@ def create_controls(app_root):
     video_control_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=(5, 0))
     video_control_frame.grid_columnconfigure(0, weight=1)
 
-    for column, text, command in enumerate(zip(["\u23EA", "\u23F9", "\u23F8"],
-                                               [rewind, stop, play_pause])):
+    for column, (text, command) in enumerate(zip(["\u23EA", "\u23F9", "\u23F8"],
+                                                 [rewind, stop, play_pause])):
         button = ttk.Button(video_control_frame, text=text, command=command)
         button.grid(row=0, column=column, padx=0, sticky='ew')
 
