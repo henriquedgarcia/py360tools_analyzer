@@ -1,4 +1,5 @@
 import json
+from functools import cached_property
 from pathlib import Path
 from tkinter import Tk, ttk, BooleanVar, Label, StringVar, filedialog
 
@@ -18,17 +19,33 @@ class Config:
     viewport_quality_filename: str
     chunk_data_filename: str
 
-    head_movement_data: pd.DataFrame
-    tiles_seen_data: pd.DataFrame
-    viewport_quality_data: pd.DataFrame
-    chunk_data: pd.DataFrame
-
-    def __init__(self, config_file):
-        self.config = json.loads(Path(config_file).read_text())
+    def __init__(self, config_file: Path):
+        self.config = json.loads(config_file.read_text())
         self.video_list = self.config['video_list']
         self.projection_list = self.config['projection_list']
         self.tiling_list = self.config['tiling_list']
         self.quality_list = self.config['quality_list']
+
+        self.head_movement_filename = self.config['head_movement_filename']
+        self.tiles_seen_filename = self.config['tiles_seen_filename']
+        self.viewport_quality_filename = self.config['viewport_quality_filename']
+        self.chunk_data_filename = self.config['chunk_data_filename']
+
+    @cached_property
+    def head_movement_data(self) -> pd.DataFrame:
+        return pd.read_hdf(self.head_movement_filename)
+
+    @cached_property
+    def tiles_seen_data(self) -> pd.DataFrame:
+        return pd.read_hdf(self.tiles_seen_filename)
+
+    @cached_property
+    def viewport_quality_data(self) -> pd.DataFrame:
+        return pd.read_hdf(self.viewport_quality_filename)
+
+    @cached_property
+    def chunk_data(self) -> pd.DataFrame:
+        return pd.read_hdf(self.chunk_data_filename)
 
 
 config: Config
@@ -57,7 +74,7 @@ def main():
     app_root = Tk()
     config_main(app_root)
     create_menu(app_root)
-    # create_settings_comboboxes(app_root)
+    create_settings_comboboxes(app_root)
     # create_players(app_root)
     # create_controls(app_root)
     # create_graphs(app_root)
@@ -80,11 +97,14 @@ def create_menu(app_root):
     nome_arquivo = StringVar(value="Nenhum arquivo selecionado")
 
     def open_config():
-        caminho = filedialog.askopenfilename(title="Selecione um arquivo", filetypes=[('application/json', '*.json')])
-        nome_arquivo.set(caminho.split("/")[-1])  # só o nome do arquivo
+        caminho = filedialog.askopenfilename(title="Selecione um arquivo", initialdir='./',
+                                             filetypes=[('application/json', '*.json')])
+        json_path = Path(caminho)
+        if json_path.suffix != '.json': return
+        nome_arquivo.set(json_path.name)  # só o nome do arquivo
 
         global config
-        config = Config(caminho)
+        config = Config(json_path)
 
     menu_frame = ttk.Frame(app_root)
     menu_frame.grid(row=0, column=0, padx=0, pady=5)
@@ -99,25 +119,26 @@ def create_menu(app_root):
 def create_settings_comboboxes(app_root):
     """Cria as caixas de seleção na parte inferior."""
     settings_frame = ttk.Labelframe(app_root, text="Config")
-    settings_frame.grid(row=1, column=0, columnspan=1, sticky="nswe", padx=10, pady=10)  # Ajustado para row=1 da raiz
-    combo_list: list[ttk.Combobox] = []
-    for idx, col_name in enumerate(['name', 'projection', 'tiling', 'quality', 'user']):
-        combo = ttk.Combobox(settings_frame, values=[], state="readonly")  # proj_list
+    settings_frame.grid(row=1, column=0, padx=0, pady=5)
+
+    combo_list = {'video': ttk.Combobox(settings_frame, values=[], state="readonly"),
+                  'projection': ttk.Combobox(settings_frame, values=[], state="readonly"),
+                  'tiling': ttk.Combobox(settings_frame, values=[], state="readonly"),
+                  'quality': ttk.Combobox(settings_frame, values=[], state="readonly"),
+                  'users': ttk.Combobox(settings_frame, values=[], state="readonly")}
+
+    for idx, (col_name, combo) in enumerate(combo_list.items()):
         combo.set(col_name)
         combo.grid(row=0, column=idx, padx=5, pady=5)
-        combo_list.append(combo)
 
     def select_user():
-        name = combo_list[0].get()
-        try:
-            name_list = chunk_data['head_movement'].name.unique()
-            if name in name_list:
-                # O que é isso?
-                combo_list[5].config(values=chunk_data['head_movement'].loc[(name,)].index.unique('users'))
-        except AttributeError:
-            pass
+        video = combo_list['video'].get()
+        if video not in config.video_list: return
+        dados_filtrados = config.chunk_data.loc[(video,)]
+        users_list = list(dados_filtrados.index.unique('users'))
+        combo_list['users'].config(values=users_list)
 
-    combo_list[4].configure(postcommand=select_user)
+    combo_list['users'].configure(postcommand=select_user)
 
 
 def create_players(app_root):
