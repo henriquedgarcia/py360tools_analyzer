@@ -1,0 +1,11 @@
+{
+  "video_list": ["cable_cam", "closet_tour", "drop_tower", "glass_elevator", "pac_man",
+                 "penthouse", "sunset", "wingsuit_dubai"],
+  "projection_list": ["cmp", "erp"],
+  "tiling_list": ["1x1", "3x2", "6x4", "9x6", "12x8"],
+  "quality_list": [16, 22, 28, 34, 40],
+  "head_movement_filename": "dataset/head_movement.hd5",
+  "tiles_seen_filename": "dataset/tiles_seen.hd5",
+  "viewport_quality_filename": "dataset/viewport_quality.hd5",
+  "chunk_data_filename": "dataset/chunk_data.hd5"
+}
