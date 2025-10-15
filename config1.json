@@ -1,4 +1,8 @@
 {
+  "duration": 60,
+  "fps": 30,
+  "resolution": 512,
+  "media_template": "dataset/decodable/{video}/{projection}/{tiling}/tile{tile}/qp{quality}/chunk{chunk}.mp4/",
   "video_list": ["cable_cam", "closet_tour", "drop_tower", "glass_elevator", "pac_man",
                  "penthouse", "sunset", "wingsuit_dubai"],
   "projection_list": ["cmp", "erp"],
