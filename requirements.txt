@@ -1,0 +1,6 @@
+pandas~=2.2.3
+py360tools~=0.1.0
+numpy~=2.3.1
+pillow~=11.3.0
+matplotlib~=3.10.0
+scikit-image~=0.25.2
