@@ -62,15 +62,6 @@ class OpenJsonMethods:
         self.plot_graphic()
         self.play_video()
 
-        # OK # Define o estado inicial
-        # prepara dataset para estatísticas da configuração
-        # cria o gráfico no estado inicial
-        # reproduz o vídeo sob certa condição
-        # condição: nenhum estado deve ser uma estatística
-        # criar o dict de paths para 2 chunks (1 de buffer)
-        # instanciar o mount_frame (full ou só os vistos)
-        # extrair um framde da projeção  # por frame
-        # extrair um viewport            # por frame
 
     @staticmethod
     def show_filedialog():
@@ -129,7 +120,7 @@ class OpenJsonMethods:
         Inicia a reprodução do vídeo com base no estado atual.
         Precisa ser implementado para carregar o vídeo correto.
         """
-        # Exemplo: Construir o caminho do vídeo com base no estado
+        # Exemplo: Construir o json_path do vídeo com base no estado
         # Isso é um placeholder; a lógica real dependerá da estrutura dos seus vídeos
         # e como eles se relacionam com os dados do chunk.
 
