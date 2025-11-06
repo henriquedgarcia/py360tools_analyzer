@@ -1,6 +1,6 @@
 import os
 
-from lib.player import Main
+from lib.main import Main
 
 workfolder = os.path.dirname(os.path.abspath(__file__))
 os.chdir(workfolder)
