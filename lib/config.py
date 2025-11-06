@@ -1,46 +1,66 @@
 import json
 from functools import cached_property
 from pathlib import Path
+from typing import Union
 
 import pandas as pd
-from py360tools import splitx
+from py360tools import ERP, CMP
 
 
 class Config:
-    config: dict
+    """
+    Represents a configuration for this project.
 
-    video_list: list[str]
-    projection_list: list[str]
-    tiling_list: list[str]
-    quality_list: list[str]
+    This class is responsible for loading and managing the configuration settings
+    configuration file. The configuration covers various parameters like video settings, projection details,
+    tiling information, resolution, field of view, frame rate, quality levels, and user movement data. It also
+    provides helper methods for processing tiling details and accessing user-specific head movement data.
 
-    head_movement_filename: str
-    tiles_seen_filename: str
-    viewport_quality_filename: str
-    chunk_data_filename: str
+    Attributes
+    ----------
+    config : dict[str, Union[int, str, list[str]]]
+        Dictionary containing the project configuration settings.
+    proj_type : dict[str, type]
+        Mapping of projection types to their corresponding classes.
+
+    Parameters
+    ----------
+    config_file : Path
+        Path to the JSON configuration file.
+
+    Methods
+    -------
+    get_tile_list(tiling: str) -> list
+        Static method returning a list of tile indices based on a tiling string.
+
+    head_movement_data : pd.DataFrame
+        Cached property loading user head movement data into a DataFrame.
+
+    get_user_movement(video: str, user: int) -> pd.DataFrame
+        Retrieves user-specific head movement data for a specified video.
+    """
+    config: dict[str, Union[int, str, list[str]]]
+
+    proj_type = {'erp': ERP, 'cmp': CMP}
 
     def __init__(self, config_file: Path):
         self.config = json.loads(config_file.read_text())
 
-        self.codec = self.config['codec']
-        self.duration = self.config['duration']
-        self.fps = self.config['fps']
-        self.gop=self.fps
-        self.fov=self.config['fov']
-        self.fov_x, self.fov_y = splitx(self.fov)
+        self.video: str = self.config['video']
+        self.projection: str = self.config['projection']
+        self.tiling: str = self.config['tiling']
+        self.resolution: str = self.config['resolution']
+        self.fov: str = self.config['fov']
+        self.duration: int = self.config['duration']
+        self.fps: int = self.config['fps']
+        self.quality_list: list[str] = self.config['quality_list']
+        self.segment_template: str = self.config['segment_template']
+        self.head_movement_filename = Path(self.config['head_movement_filename'])
+
+        self.fov_x, self.fov_y = map(int, self.fov.split('x'))
+        self.shape = tuple(map(int, self.resolution.split('x')))[::-1]
         self.n_frames = self.duration * self.fps
-        self.resolution = self.config['resolution']
-        self.erp_resolution = f'{int(2* self.resolution)}x{self.resolution}'
-        self.cmp_resolution = f'{int(3* self.resolution/2)}x{self.resolution}'
-        self.fov_resolution = f'{int(110* self.resolution/90)}x{self.resolution}'
-
-        self.video_list = self.config['video_list']
-        self.projection_list = self.config['projection_list']
-        self.tiling_list = self.config['tiling_list']
-        self.quality_list = self.config['quality_list']
-
-        self.media_template = self.config['media_template']
-        self.head_movement_filename = self.config['head_movement_filename']
+        self.fov_resolution = f'{int(round(self.shape[1]*(self.fov_x / self.fov_y)))}x{self.shape[1]}'
 
     @staticmethod
     def get_tile_list(tiling: str) -> list:
@@ -51,5 +71,5 @@ class Config:
     def head_movement_data(self) -> pd.DataFrame:
         return pd.read_hdf(self.head_movement_filename)
 
-    def get_user_movement(self, video: str, user: int)-> pd.DataFrame:
+    def get_user_movement(self, video: str, user: int) -> pd.DataFrame:
         return self.head_movement_data.loc[(video, user)]
