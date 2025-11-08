@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from pathlib import Path
-from tkinter import StringVar
 
+from matplotlib import pyplot as plt
 from py360tools import ProjectionBase, Tile, Viewport
 
 from lib.config import Config
@@ -9,63 +10,70 @@ from lib.main import Main
 
 class StateIf:
     main_app: Main
-    config: Config
 
     @property
     def paused(self):
-        return self.main_app.paused
+        return self.main_app.state.paused
 
     @paused.setter
     def paused(self, value: bool):
-        self.main_app.paused = value
+        self.main_app.state.paused = value
 
     @property
     def running(self) -> bool:
-        return self.main_app.running
+        return self.main_app.state.running
 
     @running.setter
     def running(self, value: bool):
-        self.main_app.running = value
+        self.main_app.state.running = value
 
     @property
     def quality(self) -> int:
-        return self.main_app.quality
+        return self.main_app.state.quality
 
     @quality.setter
     def quality(self, value: int):
-        self.main_app.quality = value
+        self.main_app.state.quality = value
 
     @property
     def user(self) -> int:
-        return self.main_app.user
+        return self.main_app.state.user
 
     @user.setter
     def user(self, value: int):
-        self.main_app.user = value
+        self.main_app.state.user = value
 
     @property
     def tile(self) -> Tile:
-        return self.main_app.tile
+        return self.main_app.state.tile
 
     @tile.setter
     def tile(self, value: Tile):
-        self.main_app.tile = value
+        self.main_app.state.tile = value
 
     @property
     def tile_ref(self) -> Tile:
-        return self.main_app.tile_ref
+        return self.main_app.state.tile_ref
 
     @tile_ref.setter
     def tile_ref(self, value: Tile):
-        self.main_app.tile_ref = value
+        self.main_app.state.tile_ref = value
 
     @property
     def chunk(self) -> int:
-        return self.main_app.chunk
+        return self.main_app.state.chunk
 
     @chunk.setter
     def chunk(self, value: int):
-        self.main_app.chunk = value
+        self.main_app.state.chunk = value
+
+    @property
+    def frame(self) -> int:
+        return self.main_app.state.frame
+
+    @frame.setter
+    def frame(self, value: int):
+        self.main_app.state.frame = value
 
 
 class MetricsIf:
@@ -73,51 +81,51 @@ class MetricsIf:
 
     @property
     def frame_time(self) -> float:
-        return self.main_app.frame_time
+        return self.main_app.controls.frame_time
 
     @frame_time.setter
     def frame_time(self, value: float):
-        self.main_app.frame_time = value
+        self.main_app.controls.frame_time = value
 
     @property
     def dectime(self) -> float:
-        return self.main_app.dectime
+        return self.main_app.controls.dectime
 
     @dectime.setter
     def dectime(self, value: float):
-        self.main_app.dectime = value
+        self.main_app.controls.dectime = value
 
     @property
     def viewport_ssim_value(self):
-        return self.main_app.viewport_ssim_value
+        return self.main_app.controls.viewport_ssim_value
 
     @viewport_ssim_value.setter
     def viewport_ssim_value(self, value):
-        self.main_app.viewport_ssim_value = value
+        self.main_app.controls.viewport_ssim_value = value
 
     @property
     def viewport_mse_value(self):
-        return self.main_app.viewport_mse_value
+        return self.main_app.controls.viewport_mse_list
 
     @viewport_mse_value.setter
     def viewport_mse_value(self, value):
-        self.main_app.viewport_mse_value = value
+        self.main_app.controls.viewport_mse_list = value
 
     @property
     def proj_ssim_value(self):
-        return self.main_app.proj_ssim_value
+        return self.main_app.controls.proj_ssim_value
 
     @proj_ssim_value.setter
     def proj_ssim_value(self, value):
-        self.main_app.proj_ssim_value = value
+        self.main_app.controls.proj_ssim_value = value
 
     @property
     def proj_mse_value(self):
-        return self.main_app.proj_mse_value
+        return self.main_app.controls.proj_mse_list
 
     @proj_mse_value.setter
     def proj_mse_value(self, value):
-        self.main_app.proj_mse_value = value
+        self.main_app.controls.proj_mse_list = value
 
 
 class ConfigIf:
@@ -156,12 +164,28 @@ class ConfigIf:
         self.main_app.proj_obj = value
 
     @property
+    def proj_obj_ref(self) -> ProjectionBase:
+        return self.main_app.proj_obj_ref
+
+    @proj_obj_ref.setter
+    def proj_obj_ref(self, value: ProjectionBase):
+        self.main_app.proj_obj_ref = value
+
+    @property
     def viewport_obj(self) -> Viewport:
         return self.main_app.viewport_obj
 
     @viewport_obj.setter
     def viewport_obj(self, value: Viewport):
         self.main_app.viewport_obj = value
+
+    @property
+    def viewport_obj_ref(self) -> Viewport:
+        return self.main_app.viewport_obj_ref
+
+    @viewport_obj_ref.setter
+    def viewport_obj_ref(self, value: Viewport):
+        self.main_app.viewport_obj_ref = value
 
 
 class ComboIf:
@@ -170,35 +194,103 @@ class ComboIf:
     # combo_dict
     @property
     def combo_dict(self):
-        return self.main_app.combo_dict
-
-    @combo_dict.setter
-    def combo_dict(self, value: dict):
-        self.main_app.combo_dict = value
+        return self.main_app.comboboxes.combo_dict
 
     @property
     def video_name_string_var(self):
-        return self.main_app.video_name_string_var
-
-    @video_name_string_var.setter
-    def video_name_string_var(self, value: StringVar):
-        self.main_app.video_name_string_var = value
+        return self.main_app.comboboxes.video_name_string_var
 
     @property
     def projection_string_var(self):
-        return self.main_app.projection_string_var
-
-    @projection_string_var.setter
-    def projection_string_var(self, value: StringVar):
-        self.main_app.projection_string_var = value
+        return self.main_app.comboboxes.projection_string_var
 
     @property
     def tiling_string_var(self):
-        return self.main_app.tiling_string_var
+        return self.main_app.comboboxes.tiling_string_var
 
-    @tiling_string_var.setter
-    def tiling_string_var(self, value: StringVar):
-        self.main_app.tiling_string_var = value
+
+class GraphsIf:
+    main_app: Main
+
+    @property
+    def update_graphs_chunk(self) -> Callable:
+        return self.main_app.graphs.update_graphs_chunk
+
+    @property
+    def update_graphs_frame(self) -> Callable:
+        return self.main_app.graphs.update_graphs_frame
+
+    @property
+    def reset(self) -> Callable:
+        return self.main_app.graphs.reset
+
+    # @property
+    # def chunk_y_bitrate(self):
+    #     return self.main_app.graphs.chunk_y_bitrate
+    #
+    # @property
+    # def chunk_x_n_tiles(self):
+    #     return self.main_app.graphs.chunk_x_n_tiles
+    #
+    # @property
+    # def chunk_y_n_tiles(self):
+    #     return self.main_app.graphs.chunk_y_n_tiles
+    #
+    # @property
+    # def frame_x_viewport_mse(self):
+    #     return self.main_app.graphs.frame_x_viewport_mse
+    #
+    # @property
+    # def frame_y_viewport_mse(self):
+    #     return self.main_app.graphs.frame_y_viewport_mse
+    #
+    # @property
+    # def frame_x_tiles_mse(self):
+    #     return self.main_app.graphs.frame_x_tiles_mse
+    #
+    # @property
+    # def frame_y_tiles_mse(self):
+    #     return self.main_app.graphs.frame_y_tiles_mse
+    #
+    # @property
+    # def line_bitrate(self) -> plt.Line2D:
+    #     return self.main_app.graphs.line_bitrate
+    #
+    # @property
+    # def line_n_tiles(self) -> plt.Line2D:
+    #     return self.main_app.graphs.line_n_tiles
+    #
+    # @property
+    # def line_viewport_mse(self) -> plt.Line2D:
+    #     return self.main_app.graphs.line_viewport_mse
+    #
+    # @property
+    # def line_tiles_mse(self) -> plt.Line2D:
+    #     return self.main_app.graphs.line_tiles_mse
+    #
+    # @property
+    # def canvas_tiles(self):
+    #     return self.main_app.graphs.canvas_tiles
+    #
+    # @property
+    # def canvas_viewport(self):
+    #     return self.main_app.graphs.canvas_viewport
+    #
+    # @property
+    # def chunk_fig(self):
+    #     return self.main_app.graphs.chunk_fig
+    #
+    # @property
+    # def frame_fig(self):
+    #     return self.main_app.graphs.frame_fig
+    #
+    # @property
+    # def chunk_ax_bitrate(self):
+    #     return self.main_app.graphs.chunk_ax_bitrate
+    #
+    # @property
+    # def chunk_ax_n_tiles(self):
+    #     return self.main_app.graphs.chunk_ax_bitrate
 
 
 class PlayerIf:
@@ -211,32 +303,33 @@ class PlayerIf:
 
     @property
     def projection_label(self):
-        return self.main_app.projection_label
+        return self.video_player.projection_label
 
     @projection_label.setter
     def projection_label(self, value):
-        self.main_app.projection_label = value
+        self.video_player.projection_label = value
 
     @property
     def viewport_label(self):
-        return self.main_app.viewport_label
+        return self.video_player.viewport_label
 
     @viewport_label.setter
     def viewport_label(self, value):
-        self.main_app.viewport_label = value
+        self.video_player.viewport_label = value
 
 
-class MainAppIf(StateIf, MetricsIf, ConfigIf, ComboIf, PlayerIf):
+class MainAppIf(StateIf, ConfigIf):
     main_app: Main
+
+    def __init__(self, main_app: Main):
+        self.main_app = main_app
 
     # main_app
     @property
     def app_root(self):
         return self.main_app.app_root
 
-    def __init__(self, main_app: Main):
-        self.main_app = main_app
-
+    # config
     @property
     def user_movement(self):
         return self.config.head_movement_data.loc[(self.video, self.user)]
