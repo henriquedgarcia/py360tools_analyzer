@@ -7,10 +7,10 @@ from py360tools import Viewport
 
 from lib.config import Config
 from lib.main import Main
-from lib.mainappif import MainAppIf
+from lib.mainappif import ComboIf, MainAppIf
 
 
-class Menu(MainAppIf):
+class Menu(MainAppIf, ComboIf):
     menu_frame: ttk.Frame
     json_path: Union[str, Path]
 
@@ -37,7 +37,7 @@ class Menu(MainAppIf):
 
     def open_config(self):
         self.json_path = filedialog.askopenfilename(title='Selecione um arquivo',
-                                                    initialdir='./',
+                                                    initialdir='./config/',
                                                     filetypes=[('application/json',
                                                                 '*.json')])
         self.json_path = Path(self.json_path)
@@ -78,15 +78,22 @@ class Menu(MainAppIf):
         users_list = list(dados_filtrados.index.unique('user'))
         return users_list
 
+    def update_proj_obj(self):
+        proj = self.proj_type[self.projection]
+        self.proj_obj = proj(proj_res=self.config.resolution,
+                             tiling=self.tiling)
+        self.proj_obj_ref = proj(proj_res=self.config.resolution,
+                                 tiling=self.tiling)
+
     def update_viewport_obj(self):
         self.viewport_obj = Viewport(resolution=self.config.fov_resolution,
                                      fov=self.config.fov,
                                      projection=self.proj_obj)
 
-    def update_proj_obj(self):
-        proj = self.proj_type[self.projection]
-        self.proj_obj = proj(proj_res=self.config.resolution,
-                             tiling=self.tiling)
+        self.viewport_obj_ref = Viewport(resolution=self.config.fov_resolution,
+                                         fov=self.config.fov,
+                                         projection=self.proj_obj_ref)
 
     def init_player(self):
-        ...
+        # self.main_app.controls.stop()
+        pass
