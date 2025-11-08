@@ -1,4 +1,5 @@
-from tkinter import Label, StringVar, Tk, ttk
+from tkinter import Tk, ttk
+from typing import Optional
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from py360tools import ProjectionBase, Tile, Viewport
@@ -160,6 +161,19 @@ from lib.config import Config
 #             self.cap.release()
 #         self.canvas.configure(image='')
 
+class State:
+    running: bool = False
+    paused: bool = True
+    video: str = None
+    projection: str = None
+    tiling: str = None
+    quality: int = None
+    user: int = None
+    chunk: int = None
+    frame: int = None
+    tile: Optional[Tile] = None
+    tile_ref: Optional[Tile] = None
+
 
 class Main:
     graphs_container: ttk.LabelFrame
@@ -167,79 +181,48 @@ class Main:
     viewport_graph_frame: ttk.LabelFrame
     canvas_widget1: FigureCanvasTkAgg
     canvas_widget2: FigureCanvasTkAgg
+    canvas_widget: FigureCanvasTkAgg
 
     # py360tools
     proj_obj: ProjectionBase
+    proj_obj_ref: ProjectionBase
     viewport_obj: Viewport
-
-    # State
-    running: bool = False
-    paused: bool = True
-    video: str
-    projection: str
-    tiling: str
-    quality: int
-    user: int
-    chunk: int
-    tile: Tile
-    tile_ref: Tile
-
-    # MetricsIf
-    frame_time: float
-    dectime: float
-    viewport_ssim_value: float
-    viewport_mse_value: float
-    proj_ssim_value: float
-    proj_mse_value: float
-
-    # comboboxes
-    combo_dict: dict
-    video_name_string_var: StringVar
-    projection_string_var: StringVar
-    tiling_string_var: StringVar
+    viewport_obj_ref: Viewport
 
     # video_player
-    viewport_label: Label
-    projection_label: Label
     app_root: Tk
-    config: Config
+    config: Config = None
 
     def __init__(self):
         from lib.menu import Menu
         from lib.comboboxes import Comboboxes
         from lib.videoplayer import VideoPlayer
         from lib.controls import Controls
+        from lib.graphs import Graphs
 
         self.config_main()
         self.menu = Menu(self)
         self.comboboxes = Comboboxes(self)
         self.video_player = VideoPlayer(self)
         self.controls = Controls(self)
-        self.create_graphs()
+        self.graphs = Graphs(self)
         self.app_root.mainloop()
 
+    state: State
+
     def config_main(self):
+        self.state = State()
         self.app_root = Tk()
         self.app_root.geometry("1000x720")
         self.app_root.title('py360tools')
 
         self.app_root.grid_columnconfigure(0, weight=1)
-        # --- Configuração do Layout Principal ---
+
         self.app_root.grid_rowconfigure(0, weight=0)  # menu abrir
         self.app_root.grid_rowconfigure(1, weight=0)  # Options
         self.app_root.grid_rowconfigure(2, weight=0)  # players
         self.app_root.grid_rowconfigure(3, weight=0)  # controle do player
         self.app_root.grid_rowconfigure(4, weight=1)  # gráficos
-
-    open_video_button: ttk.Button
-    open_video_label: Label
-
-    graphs_container: ttk.LabelFrame
-    tiles_graph_frame: ttk.LabelFrame
-
-    canvas_widget1: FigureCanvasTkAgg
-    canvas_widget2: FigureCanvasTkAgg
-    viewport_graph_frame: ttk.LabelFrame
 
 
 if __name__ == '__main__':
