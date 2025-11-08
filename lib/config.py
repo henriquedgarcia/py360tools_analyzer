@@ -50,6 +50,7 @@ class Config:
         self.projection: str = self.config['projection']
         self.tiling: str = self.config['tiling']
         self.resolution: str = self.config['resolution']
+        self.fov_resolution: str = self.config['fov_resolution']
         self.fov: str = self.config['fov']
         self.duration: int = self.config['duration']
         self.fps: int = self.config['fps']
@@ -60,7 +61,6 @@ class Config:
         self.fov_x, self.fov_y = map(int, self.fov.split('x'))
         self.shape = tuple(map(int, self.resolution.split('x')))[::-1]
         self.n_frames = self.duration * self.fps
-        self.fov_resolution = f'{int(round(self.shape[1]*(self.fov_x / self.fov_y)))}x{self.shape[1]}'
 
     @staticmethod
     def get_tile_list(tiling: str) -> list:
