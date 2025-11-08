@@ -5,6 +5,8 @@ from lib.mainappif import MainAppIf
 
 
 class Comboboxes(MainAppIf):
+    combo_dict: dict[str, ttk.Combobox]
+
     def __init__(self, main_app: Main):
         super().__init__(main_app)
         self._create_comboboxes_main_frame()
@@ -34,6 +36,8 @@ class Comboboxes(MainAppIf):
         for idx in range(4):
             self.settings_frame.grid_columnconfigure(idx, weight=0)
         self.settings_frame.grid_columnconfigure(4, weight=1)
+
+    video_name_string_var: StringVar
 
     def _create_settings_comboboxes(self):
         """Cria as caixas de seleção na parte inferior."""
