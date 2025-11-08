@@ -1,0 +1,17 @@
+{
+    "video": "closet_tour",
+    "projection": "cmp",
+    "tiling": "12x8",
+    "resolution": "360x240",
+    "fov_resolution": "293x240",
+    "fov": "110x90",
+    "duration": 60,
+    "fps": 30,
+    "quality_list": [
+        "22",
+        "28",
+        "34"
+    ],
+    "segment_template": "../decodable_lo/closet_tour/cmp/12x8/tile{tile}/qp{quality}/chunk{chunk}.mp4",
+    "head_movement_filename": "dataset/head_movement.hd5"
+}
