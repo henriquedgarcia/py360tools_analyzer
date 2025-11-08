@@ -1,5 +1,5 @@
 from pathlib import Path
-from tkinter import StringVar, Label, BooleanVar, ttk
+from tkinter import BooleanVar, Label, StringVar, ttk
 from typing import Iterator
 
 import numpy as np
@@ -15,7 +15,12 @@ class VideoPlayer(MainAppIf):
     black_imgtk2: ImageTk.PhotoImage | str
     video_container: ttk.Frame
     projection_frame: ttk.LabelFrame
+
+    frame_time = float
+
+    projection_label: Label
     viewport_frame: ttk.LabelFrame
+    viewport_label: Label
 
     def __init__(self, main_app: 'Main'):
         super().__init__(main_app)
@@ -70,49 +75,3 @@ class VideoPlayer(MainAppIf):
         self.viewport_label = Label(self.viewport_frame, image=self.black_imgtk2, background='magenta')
         self.viewport_label.imgtk = self.black_imgtk2
         self.viewport_label.grid(row=0, column=0)
-
-    chunk_hmd_samples_iter: Iterator[tuple[float, float, float]]
-
-    frame_iterator: Iterator[np.ndarray]
-    frame_iterator_ref: Iterator[np.ndarray]
-
-    tile_path: dict[str, Path]
-    tiles_seen: list[Tile]
-    tiles_seen_ref: list[Tile]
-    frame_time = float
-
-    pause_icon: StringVar
-    play_icon: StringVar
-    rewind_icon: StringVar
-    stop_icon: StringVar
-    repeat: BooleanVar
-
-    # def video_loop(self):
-    #     """Lê um frame do vídeo completo, converte e exibe."""
-    #     if self.video_capture and not self.pausado:
-    #         ret, frame = self.video_capture.read()
-    #         if ret:
-    #             frame = cv2.resize(frame, (self.video_display_w, self.video_display_h))
-    #             cv2image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    #             img = Image.fromarray(cv2image)
-    #             imgtk = ImageTk.PhotoImage(image=img)
-    #             self.video_full_label.imgtk = imgtk
-    #             self.video_full_label.configure(image=imgtk)
-    #             self.app_root.after(30, self.video_loop)
-    #         else:
-    #             if self.repeat.get():
-    #                 self.rewind()
-    #                 self.video_loop()
-    #             else:
-    #                 self.stop()
-    #
-    # def rewind(self):
-    #     # todo: converter video_capture em tilestitcher
-    #     self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
-    #
-    # def stop(self):
-    #     if self.video_capture:
-    #         self.video_capture.release()
-    #         self.video_capture = None
-    #         self.video_full_label.config(image="")
-    #         self.play_button.config(text="Play")
