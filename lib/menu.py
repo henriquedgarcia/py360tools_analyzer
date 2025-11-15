@@ -45,9 +45,6 @@ class Menu(MainAppIf, ComboIf):
         self.load_config()
         self.update_labels()
         self.update_combobox()
-        self.update_proj_obj()
-        self.update_viewport_obj()
-        self.init_player()
 
     def load_config(self):
         try:
@@ -78,22 +75,3 @@ class Menu(MainAppIf, ComboIf):
         users_list = list(dados_filtrados.index.unique('user'))
         return users_list
 
-    def update_proj_obj(self):
-        proj = self.proj_type[self.projection]
-        self.proj_obj = proj(proj_res=self.config.resolution,
-                             tiling=self.tiling)
-        self.proj_obj_ref = proj(proj_res=self.config.resolution,
-                                 tiling=self.tiling)
-
-    def update_viewport_obj(self):
-        self.viewport_obj = Viewport(resolution=self.config.fov_resolution,
-                                     fov=self.config.fov,
-                                     projection=self.proj_obj)
-
-        self.viewport_obj_ref = Viewport(resolution=self.config.fov_resolution,
-                                         fov=self.config.fov,
-                                         projection=self.proj_obj_ref)
-
-    def init_player(self):
-        # self.main_app.controls.stop()
-        pass
