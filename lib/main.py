@@ -1,165 +1,10 @@
-from tkinter import Tk, ttk
+from tkinter import Tk
 from typing import Optional
 
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from py360tools import ProjectionBase, Tile, Viewport
+from py360tools import Tile
 
 from lib.config import Config
 
-
-# """
-# import tkinter as tk
-# from tkinter import filedialog, ttk
-# import json
-# import cv2
-# from PIL import Image, ImageTk
-#
-# class VideoPlayer:
-#     def __init__(self, root):
-#         self.root = root
-#         self.root.title("Player de Vídeos em Sequência")
-#
-#         # Interface
-#         self.canvas = tk.Label(root)
-#         self.canvas.pack()
-#
-#         self.btn_frame = tk.Frame(root)
-#         self.btn_frame.pack()
-#
-#         self.btn_open = tk.Button(self.btn_frame, text="Abrir", command=self.abrir_json)
-#         self.btn_open.pack(side=tk.LEFT)
-#
-#         self.btn_play = tk.Button(self.btn_frame, text="Play", command=self.play)
-#         self.btn_play.pack(side=tk.LEFT)
-#
-#         self.btn_rewind = tk.Button(self.btn_frame, text="Rewind", command=self.rewind)
-#         self.btn_rewind.pack(side=tk.LEFT)
-#
-#         self.btn_stop = tk.Button(self.btn_frame, text="Stop", command=self.stop)
-#         self.btn_stop.pack(side=tk.LEFT)
-#
-#         # Estado
-#         self.video_paths = []
-#         self.current_index = 0
-#         self.cap = None
-#         self.running = False
-#
-#     def abrir_json(self):
-#         file_path = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
-#         if file_path:
-#             with open(file_path, "r") as f:
-#                 self.video_paths = json.load(f)
-#             self.current_index = 0
-#
-#     def play(self):
-#         if not self.video_paths:
-#             return
-#         self.running = True
-#         self.cap = cv2.VideoCapture(self.video_paths[self.current_index])
-#         self.update_frame()
-#
-#     def update_frame(self):
-#         if not self.running or not self.cap:
-#             return
-#
-#         ret, frame = self.cap.read()
-#         if ret:
-#             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-#             img = Image.fromarray(frame)
-#             imgtk = ImageTk.PhotoImage(image=img)
-#             self.canvas.imgtk = imgtk
-#             self.canvas.configure(image=imgtk)
-#             self.root.after(30, self.update_frame)
-#         else:
-#             self.cap.release()
-#             self.current_index += 1
-#             if self.current_index < len(self.video_paths):
-#                 self.cap = cv2.VideoCapture(self.video_paths[self.current_index])
-#                 self.update_frame()
-#             else:
-#                 self.running = False
-#
-#     def rewind(self):
-#         self.stop()
-#         self.current_index = 0
-#         self.play()
-#
-#     def stop(self):
-#         self.running = False
-#         if self.cap:
-#             self.cap.release()
-#         self.canvas.configure(image='')
-#
-# # Executar
-# root = tk.Tk()
-# player = VideoPlayer(root)
-# root.mainloop()
-# """
-
-# segunda versão do copilot com pause
-# class VideoPlayer:
-#     def __init__(self, root):
-#         # ... (interface e botões como antes)
-# 
-#         self.video_paths = []
-#         self.current_index = 0
-#         self.cap = None
-#         self.running = False
-#         self.paused = False
-# 
-#     def play(self):
-#         if not self.video_paths:
-#             return
-# 
-#         # Se já está rodando e não está pausado → pausa
-#         if self.running and not self.paused:
-#             self.paused = True
-#             return
-# 
-#         # Se está pausado → retoma
-#         if self.running and self.paused:
-#             self.paused = False
-#             self.update_frame()
-#             return
-# 
-#         # Se não está rodando → inicia
-#         self.running = True
-#         self.paused = False
-#         self.cap = cv2.VideoCapture(self.video_paths[self.current_index])
-#         self.update_frame()
-# 
-#     def update_frame(self):
-#         if not self.running or self.paused or not self.cap:
-#             return
-# 
-#         ret, frame = self.cap.read()
-#         if ret:
-#             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-#             img = Image.fromarray(frame)
-#             imgtk = ImageTk.PhotoImage(image=img)
-#             self.canvas.imgtk = imgtk
-#             self.canvas.configure(image=imgtk)
-#             self.root.after(30, self.update_frame)
-#         else:
-#             self.cap.release()
-#             self.current_index += 1
-#             if self.current_index < len(self.video_paths):
-#                 self.cap = cv2.VideoCapture(self.video_paths[self.current_index])
-#                 self.update_frame()
-#             else:
-#                 self.running = False
-# 
-#     def rewind(self):
-#         self.stop()
-#         self.current_index = 0
-#         self.play()
-# 
-#     def stop(self):
-#         self.running = False
-#         self.paused = False
-#         if self.cap:
-#             self.cap.release()
-#         self.canvas.configure(image='')
 
 class State:
     running: bool = False
@@ -176,39 +21,79 @@ class State:
 
 
 class Main:
-    graphs_container: ttk.LabelFrame
-    tiles_graph_frame: ttk.LabelFrame
-    viewport_graph_frame: ttk.LabelFrame
-    canvas_widget1: FigureCanvasTkAgg
-    canvas_widget2: FigureCanvasTkAgg
-    canvas_widget: FigureCanvasTkAgg
+    """
+    Esta classe representa a aplicação principal. Esta classe é o mais alto
+    nível da aplicação e costumam ficar as variáveis globais que são os
+    controladores (menu, comboboxes, video player, controls, graphs), o
+    objeto Tk (app_root), o objeto com o estado (state) e o conteúdo do JSON
+    (config). É nessa classe que executamos o mainloop do Tkinter.
 
-    # py360tools
-    proj_obj: ProjectionBase
-    proj_obj_ref: ProjectionBase
-    viewport_obj: Viewport
-    viewport_obj_ref: Viewport
+    O construtor da class Main cria todos os controladores após o método
+    self.config_main() inicializar o TKinter e definir sua configuração inicial,
+    incluindo layout, geometria e título.
 
-    # video_player
+    O atributo state deve ser instanciado antes de qualquer controlador.
+    A classe State poderia ser uma NamedTuple. É apenas uma classe para armazenar
+    informações sobre a execução atual do programa, como video, projection, tiling,
+    quality, tile, chunk, frame, user, paused, running, etc
+
+    O atributo config não é iniciado e como atributo de classe possui valor None
+    pois quem vai lhe atribuir alguma coisa é o controlador Menu assim que o
+    usuário abrir um arquivo JSON. A classe Config transforma os itens do JSON
+    em atributos da classe. Além disso, quando iniciada, ela já carrega o
+    dataset de movimento de cabeça, calcula o número de quadros, converte a
+    resolução e o FOV em tuplas e já cria os objetos Projection e Viewport,
+    tanto de qualidade Q quanto de referência.
+
+    No momento, o grid principal é composto de cinco linhas que conterão uma função
+    diferente da GUI.
+
+    - 1ª linha:
+        + menu abrir JSON
+        + todo: no futuro incluir novas opções
+    - 2ª linha:
+        + Um display que exibe o nome do vídeo, projeção e tiling.
+        + Um Combobox para mudar a qualidade e o usuário.
+    - 3ª linha:
+        + canvas para exibir o vídeo da projeção
+        + canvas para exibir o video do viewport
+    - 4ª linha:
+        + botões de controle play/pause, rewind, stop
+        + checkbox para repeat
+        + checkbox para não mostrar vídeo (apenas gráficos
+    - 5ª linha:
+        + um gráfico de eixo y gêmeos com bitrate e n_tiles
+        + um gráfico de eixo y gêmeos com MSE médio dos ladrilhos e do viewport
+
+    Um controlador é uma classe que cria e controla seu espaço na GUI. Por isso,
+    todo controlador deve ser filho da classe MainIf. O controlador, ao ser
+    instanciada recebe o self da classe Main. Com isso os controladores tem
+    acesso a tudo da classe Main, incluindo os outros controladores, o config e
+    o state.
+
+    Para acessar outro controlador, o controlador deve herdar da classe de
+    interface do controlador, ex: GraphIf, ComboIf, etc. Então o controlador
+    acessa o atributo ou methods do outro controlador como se fosse seu.
+    """
+    state: State
     app_root: Tk
     config: Config = None
 
     def __init__(self):
         from lib.menu import Menu
-        from lib.comboboxes import Comboboxes
+        from lib.controlers.comboboxes import Comboboxes
         from lib.videoplayer import VideoPlayer
-        from lib.controls import Controls
-        from lib.graphs import Graphs
+        from lib.controlers.controls import Controls
+        from lib.controlers.graphs import Graphs
 
         self.config_main()
+
         self.menu = Menu(self)
         self.comboboxes = Comboboxes(self)
         self.video_player = VideoPlayer(self)
         self.controls = Controls(self)
         self.graphs = Graphs(self)
         self.app_root.mainloop()
-
-    state: State
 
     def config_main(self):
         self.state = State()
