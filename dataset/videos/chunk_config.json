@@ -1,0 +1,12 @@
+{
+    "video_path": "./cable_cam_cmp.mp4",
+    "name": "cable_cam",
+    "projection": "erp",
+    "resolution": "480x240",
+    "duration": 60,
+    "fps": 30,
+    "gop": 30,
+    "rate_control": "qp",
+    "tiling_list": ["1x1", "3x2", "6x4", "9x6", "12x8"],
+    "quality_list": ["0", "22", "28", "34"]
+}
