@@ -1,8 +1,6 @@
 from collections.abc import Callable
-from pathlib import Path
 
-from matplotlib import pyplot as plt
-from py360tools import ProjectionBase, Tile, Viewport
+from py360tools import Projection, Tile, Viewport
 
 from lib.config import Config
 from lib.main import Main
@@ -80,14 +78,6 @@ class MetricsIf:
     main_app: Main
 
     @property
-    def frame_time(self) -> float:
-        return self.main_app.controls.frame_time
-
-    @frame_time.setter
-    def frame_time(self, value: float):
-        self.main_app.controls.frame_time = value
-
-    @property
     def dectime(self) -> float:
         return self.main_app.controls.dectime
 
@@ -119,14 +109,6 @@ class MetricsIf:
     def proj_ssim_value(self, value):
         self.main_app.controls.proj_ssim_value = value
 
-    @property
-    def proj_mse_value(self):
-        return self.main_app.controls.proj_mse_list
-
-    @proj_mse_value.setter
-    def proj_mse_value(self, value):
-        self.main_app.controls.proj_mse_list = value
-
 
 class ConfigIf:
     main_app: Main
@@ -138,6 +120,10 @@ class ConfigIf:
     @config.setter
     def config(self, value: Config):
         self.main_app.config = value
+
+    @property
+    def frame_time(self) -> float:
+        return self.config.frame_time
 
     @property
     def video(self) -> str:
@@ -152,40 +138,36 @@ class ConfigIf:
         return self.config.tiling
 
     @property
-    def proj_type(self):
-        return self.config.proj_type
-
-    @property
-    def proj_obj(self) -> ProjectionBase:
-        return self.main_app.proj_obj
+    def proj_obj(self) -> Projection:
+        return self.config.proj_obj
 
     @proj_obj.setter
-    def proj_obj(self, value: ProjectionBase):
-        self.main_app.proj_obj = value
+    def proj_obj(self, value: Projection):
+        self.config.proj_obj = value
 
     @property
-    def proj_obj_ref(self) -> ProjectionBase:
-        return self.main_app.proj_obj_ref
+    def proj_obj_ref(self) -> Projection:
+        return self.config.proj_obj_ref
 
     @proj_obj_ref.setter
-    def proj_obj_ref(self, value: ProjectionBase):
-        self.main_app.proj_obj_ref = value
+    def proj_obj_ref(self, value: Projection):
+        self.config.proj_obj_ref = value
 
     @property
     def viewport_obj(self) -> Viewport:
-        return self.main_app.viewport_obj
+        return self.config.viewport_obj
 
     @viewport_obj.setter
     def viewport_obj(self, value: Viewport):
-        self.main_app.viewport_obj = value
+        self.config.viewport_obj = value
 
     @property
     def viewport_obj_ref(self) -> Viewport:
-        return self.main_app.viewport_obj_ref
+        return self.config.viewport_obj_ref
 
     @viewport_obj_ref.setter
     def viewport_obj_ref(self, value: Viewport):
-        self.main_app.viewport_obj_ref = value
+        self.config.viewport_obj_ref = value
 
 
 class ComboIf:
@@ -213,90 +195,34 @@ class GraphsIf:
     main_app: Main
 
     @property
-    def update_graphs_chunk(self) -> Callable:
-        return self.main_app.graphs.update_graphs_chunk
+    def graphs(self):
+        return self.main_app.graphs
+
+    def update_graphs_chunk(self, bitrate, n_tiles) -> Callable:
+        return self.graphs.update_graphs_chunk(bitrate, n_tiles)
+
+    def update_graphs_frame(self, tiles_mse, viewport_mse) -> Callable:
+        return self.graphs.update_graphs_frame(tiles_mse, viewport_mse)
+
+    def graphs_reset(self) -> Callable:
+        return self.graphs.reset()
+
+
+class ControlsIf:
+    main_app: Main
 
     @property
-    def update_graphs_frame(self) -> Callable:
-        return self.main_app.graphs.update_graphs_frame
+    def controls(self):
+        return self.main_app.controls
 
     @property
-    def reset(self) -> Callable:
-        return self.main_app.graphs.reset
-
-    # @property
-    # def chunk_y_bitrate(self):
-    #     return self.main_app.graphs.chunk_y_bitrate
-    #
-    # @property
-    # def chunk_x_n_tiles(self):
-    #     return self.main_app.graphs.chunk_x_n_tiles
-    #
-    # @property
-    # def chunk_y_n_tiles(self):
-    #     return self.main_app.graphs.chunk_y_n_tiles
-    #
-    # @property
-    # def frame_x_viewport_mse(self):
-    #     return self.main_app.graphs.frame_x_viewport_mse
-    #
-    # @property
-    # def frame_y_viewport_mse(self):
-    #     return self.main_app.graphs.frame_y_viewport_mse
-    #
-    # @property
-    # def frame_x_tiles_mse(self):
-    #     return self.main_app.graphs.frame_x_tiles_mse
-    #
-    # @property
-    # def frame_y_tiles_mse(self):
-    #     return self.main_app.graphs.frame_y_tiles_mse
-    #
-    # @property
-    # def line_bitrate(self) -> plt.Line2D:
-    #     return self.main_app.graphs.line_bitrate
-    #
-    # @property
-    # def line_n_tiles(self) -> plt.Line2D:
-    #     return self.main_app.graphs.line_n_tiles
-    #
-    # @property
-    # def line_viewport_mse(self) -> plt.Line2D:
-    #     return self.main_app.graphs.line_viewport_mse
-    #
-    # @property
-    # def line_tiles_mse(self) -> plt.Line2D:
-    #     return self.main_app.graphs.line_tiles_mse
-    #
-    # @property
-    # def canvas_tiles(self):
-    #     return self.main_app.graphs.canvas_tiles
-    #
-    # @property
-    # def canvas_viewport(self):
-    #     return self.main_app.graphs.canvas_viewport
-    #
-    # @property
-    # def chunk_fig(self):
-    #     return self.main_app.graphs.chunk_fig
-    #
-    # @property
-    # def frame_fig(self):
-    #     return self.main_app.graphs.frame_fig
-    #
-    # @property
-    # def chunk_ax_bitrate(self):
-    #     return self.main_app.graphs.chunk_ax_bitrate
-    #
-    # @property
-    # def chunk_ax_n_tiles(self):
-    #     return self.main_app.graphs.chunk_ax_bitrate
+    def button_dict(self):
+        return self.controls.button_dict
 
 
 class PlayerIf:
     main_app: Main
 
-    # video_player
     @property
     def video_player(self):
         return self.main_app.video_player
@@ -319,6 +245,11 @@ class PlayerIf:
 
 
 class MainAppIf(StateIf, ConfigIf):
+    """Interface para a classe Main.
+    Ela faz os controladores terem acesso o estado: (nome, projeção, tiling,
+    qualidade, tile, chunk, frame, user, ...), e a configuração:
+
+    """
     main_app: Main
 
     def __init__(self, main_app: Main):
@@ -333,10 +264,3 @@ class MainAppIf(StateIf, ConfigIf):
     @property
     def user_movement(self):
         return self.config.head_movement_data.loc[(self.video, self.user)]
-
-    @property
-    def chunk_path(self) -> Path:
-        kwargs = dict(video=self.video, projection=self.projection,
-                      tiling=self.tiling, quality=self.quality,
-                      tile=self.tile, chunk=self.chunk)
-        return Path(self.config.segment_template.format(**kwargs))
