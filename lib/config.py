@@ -1,10 +1,9 @@
 import json
-from functools import cached_property
 from pathlib import Path
 from typing import Union
 
 import pandas as pd
-from py360tools import ERP, CMP
+from py360tools import CMP, ERP, Viewport
 
 
 class Config:
@@ -58,18 +57,30 @@ class Config:
         self.segment_template: str = self.config['segment_template']
         self.head_movement_filename = Path(self.config['head_movement_filename'])
 
+        self.head_movement_data = pd.read_hdf(self.head_movement_filename)
         self.fov_x, self.fov_y = map(int, self.fov.split('x'))
         self.shape = tuple(map(int, self.resolution.split('x')))[::-1]
         self.n_frames = self.duration * self.fps
+        self.frame_time = 1000 / self.fps
+
+        proj = self.proj_type[self.projection]
+        self.proj_obj = proj(proj_res=self.resolution,
+                             tiling=self.tiling)
+        self.proj_obj_ref = proj(proj_res=self.resolution,
+                                 tiling=self.tiling)
+
+        self.viewport_obj = Viewport(resolution=self.fov_resolution,
+                                     fov=self.fov,
+                                     projection=self.proj_obj)
+
+        self.viewport_obj_ref = Viewport(resolution=self.fov_resolution,
+                                         fov=self.fov,
+                                         projection=self.proj_obj_ref)
 
     @staticmethod
     def get_tile_list(tiling: str) -> list:
         x, y = tiling.split('x')
         return list(range(int(x) * int(y)))
-
-    @cached_property
-    def head_movement_data(self) -> pd.DataFrame:
-        return pd.read_hdf(self.head_movement_filename)
 
     def get_user_movement(self, video: str, user: int) -> pd.DataFrame:
         return self.head_movement_data.loc[(video, user)]
