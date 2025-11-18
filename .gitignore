@@ -3,3 +3,4 @@ decodable
 /lib/__pycache__
 /dataset/old
 /.vscode
+/lib/controlers/__pycache__
