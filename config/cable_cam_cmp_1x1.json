@@ -1,17 +1,15 @@
 {
-    "video": "cable_cam",
-    "projection": "cmp",
-    "tiling": "1x1",
+    "video_list": ["cable_cam"],
+    "projection_list": ["cmp"],
+    "tiling_list": ["1x1", "3x2", "6x4", "9x6", "12x8"],
+    "quality_list": ["22", "28", "34"],
+    "rate_control": "qp",
     "resolution": "360x240",
     "fov_resolution": "293x240",
     "fov": "110x90",
     "duration": 60,
     "fps": 30,
-    "quality_list": [
-        "22",
-        "28",
-        "34"
-    ],
-    "segment_template": "../decodable_lo/cable_cam/cmp/1x1/tile{tile}/qp{quality}/chunk{chunk}.mp4",
+    "gop": 30,
+    "segment_template": "../decodable_lo/{video}/{projection}/{tiling}/tile{tile}/qp{quality}/chunk{chunk}.mp4",
     "head_movement_filename": "dataset/head_movement.hd5"
 }
