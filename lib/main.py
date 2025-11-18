@@ -1,23 +1,8 @@
 from tkinter import Tk
-from typing import Optional
 
-from py360tools import Tile
-
-from lib.config import Config
-
-
-class State:
-    running: bool = False
-    paused: bool = True
-    video: str = None
-    projection: str = None
-    tiling: str = None
-    quality: int = None
-    user: int = None
-    chunk: int = None
-    frame: int = None
-    tile: Optional[Tile] = None
-    tile_ref: Optional[Tile] = None
+from lib.controlers.config import Config
+from lib.controlers.controls import Controls
+from lib.controlers.state import State
 
 
 class Main:
@@ -80,34 +65,29 @@ class Main:
     config: Config = None
 
     def __init__(self):
-        from lib.menu import Menu
-        from lib.controlers.comboboxes import Comboboxes
-        from lib.videoplayer import VideoPlayer
-        from lib.controlers.controls import Controls
-        from lib.controlers.graphs import Graphs
+        from lib.controlers.menu import Menu
+        from lib.controlers.checkboxes import Checkboxes
+        from lib.controlers.console import Console
 
         self.config_main()
-
-        self.menu = Menu(self)
-        self.comboboxes = Comboboxes(self)
-        self.video_player = VideoPlayer(self)
+        self.config = Config()
+        self.state = State()
         self.controls = Controls(self)
-        self.graphs = Graphs(self)
+        self.menu = Menu(self)
+        self.checkboxes = Checkboxes(self)
+        self.console = Console(self)
+
         self.app_root.mainloop()
 
     def config_main(self):
-        self.state = State()
         self.app_root = Tk()
         self.app_root.geometry("1000x720")
         self.app_root.title('py360tools')
 
         self.app_root.grid_columnconfigure(0, weight=1)
-
-        self.app_root.grid_rowconfigure(0, weight=0)  # menu abrir
-        self.app_root.grid_rowconfigure(1, weight=0)  # Options
-        self.app_root.grid_rowconfigure(2, weight=0)  # players
-        self.app_root.grid_rowconfigure(3, weight=0)  # controle do player
-        self.app_root.grid_rowconfigure(4, weight=1)  # gráficos
+        self.app_root.grid_rowconfigure(0, weight=0)  # menu e label
+        self.app_root.grid_rowconfigure(1, weight=0)  # checkbox
+        self.app_root.grid_rowconfigure(2, weight=0)  # console
 
 
 if __name__ == '__main__':
