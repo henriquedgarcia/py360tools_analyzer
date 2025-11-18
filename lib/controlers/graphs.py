@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from lib.main import Main
-from lib.mainappif import MainAppIf
+from lib.interfaces.mainappif import MainAppIf
 
 
 class Graphs(MainAppIf):
