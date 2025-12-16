@@ -1,8 +1,8 @@
 {
-    "video_list": ["cable_cam"],
-    "projection_list": ["cmp"],
+    "video_list": ["cable_cam", "closet_tour"],
+    "projection_list": ["cmp", "erp"],
     "tiling_list": ["1x1", "3x2", "6x4", "9x6", "12x8"],
-    "quality_list": ["22", "28", "34"],
+    "quality_list": ["0", "22", "28", "34"],
     "rate_control": "qp",
     "resolution": "360x240",
     "fov_resolution": "293x240",
