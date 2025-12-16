@@ -1,7 +1,6 @@
 from tkinter import Tk
 
 from lib.controlers.config import Config
-from lib.controlers.controls import Controls
 from lib.controlers.state import State
 
 
@@ -65,6 +64,7 @@ class Main:
     config: Config = None
 
     def __init__(self):
+        from lib.controlers.controls import Controls
         from lib.controlers.menu import Menu
         from lib.controlers.checkboxes import Checkboxes
         from lib.controlers.console import Console
@@ -76,6 +76,9 @@ class Main:
         self.menu = Menu(self)
         self.checkboxes = Checkboxes(self)
         self.console = Console(self)
+
+        self.app_root.after(100, self.controls.open)   #
+        self.app_root.after(200, self.controls.start)  #
 
         self.app_root.mainloop()
 
