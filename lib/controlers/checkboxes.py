@@ -1,8 +1,8 @@
 import tkinter as tk
 from tkinter import ttk
 
-from lib.main import Main
 from lib.interfaces.mainappif import MainAppIf
+from lib.main import Main
 
 
 class Checkboxes(MainAppIf):
