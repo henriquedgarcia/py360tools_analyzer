@@ -35,9 +35,10 @@ class Config:
     head_movement_data : pd.DataFrame
         Cached property loading user head movement data into a DataFrame.
 
-    get_user_movement(video: str, user: int) -> pd.DataFrame
+    Get_user_movement(video: str, user: int) -> pd.DataFrame
         Retrieves user-specific head movement data for a specified video.
     """
+    hash: int
     config: dict[str, Union[int, str, list[str]]] | None
 
     proj_type: dict[str, Type[Projection]] = {'erp': ERP, 'cmp': CMP}
@@ -45,7 +46,8 @@ class Config:
     video_list: list[str]
     projection_list: list[str]
     tiling_list: list[str]
-    quality_list: list[str]
+    quality_list: list[int]
+    chunk_list: list[int]
     rate_control: str
     resolution: str
     fov_resolution: str
@@ -66,6 +68,7 @@ class Config:
     n_frames: int
     frame_time: float
     chunk_time: float
+    project_folder: Path
 
     def __init__(self, config_file: Path = None):
         if config_file is None:
@@ -83,9 +86,14 @@ class Config:
             - pre-calcular shape, numero de frames, duração do frame, duração do
             chunk, etc.
             -pre-calcular lista de usuários por video
-            -pre-calcular posição e tamanho dos tiles por video e tiling
+            -pre-calcular posição e tamanho dos tiles por projeção e tiling
         """
-        self.config = json.loads(config_file.read_text())
+        config_text = config_file.read_text()
+        project_name = hash(config_text).to_bytes(8, signed=True, byteorder="big").hex()
+        self.project_folder = Path(f'./cache/{project_name}')
+        self.project_folder.mkdir(parents=True, exist_ok=True)
+
+        self.config = json.loads(config_text)
 
         self.video_list: list[str] = self.config['video_list']
         self.projection_list: list[str] = self.config['projection_list']
@@ -109,6 +117,7 @@ class Config:
         self.n_frames = self.duration * self.fps
         self.frame_time = 1000 / self.fps
         self.chunk_time = 1000 * self.gop / self.fps
+        self.chunk_list = list(range(1, self.n_frames // self.gop + 1))
 
     def get_users_list(self, video) -> list[int]:
         dados_filtrados = self.head_movement_data.loc[(video,)]
@@ -127,6 +136,10 @@ class Config:
         self.viewport_obj = Viewport(resolution=self.fov_resolution,
                                      fov=self.fov, projection=proj_obj)
         return
+
+    def get_segment_path(self, video, projection, tiling, tile, quality, chunk):
+        chunk_path = self.segment_template.format(video=video, projection=projection, tiling=tiling, tile=tile, quality=quality, chunk=chunk)
+        return Path(chunk_path)
 
     @staticmethod
     def get_tile_list(tiling: str) -> list:
