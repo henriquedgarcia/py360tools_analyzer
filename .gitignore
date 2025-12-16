@@ -1,6 +1,5 @@
 .idea
 decodable
-/lib/__pycache__
+__pycache__
 /dataset/old
 /.vscode
-/lib/controlers/__pycache__
