@@ -48,7 +48,7 @@ class Menu(MainAppIf):
             self.button_dict[button].grid(row=0, column=n, padx=2, sticky='w')
 
     string_var_dict: dict[str, tk.StringVar]
-    param_list = ['Video', 'Projection', 'Tiling', 'User', 'Quality', 'Chunk', 'Metric']
+    param_list = ['video', 'projection', 'tiling', 'user', 'quality', 'chunk', 'metric']
 
     def _create_labels_frame(self):
         self.string_var_dict = {}
@@ -61,4 +61,8 @@ class Menu(MainAppIf):
             label.grid(row=0, column=0, padx=5, pady=0, sticky='nsew')
 
     def update_labels_frame(self, param: str, value: str):
+        """
+        param = 'video'|'projection'|'tiling'|'user'|'quality'|'chunk'|'metric'
+
+        """
         self.string_var_dict[param].set(value)
